@@ -77,7 +77,8 @@ async function searchStore(host, store, search) {
         available: typeof variant.available === 'boolean' ? variant.available : null,
         sku: variant.sku || null,
         barcode: barcode || null,
-        gtinValid: isValidGtin(barcode),
+        // Shopify stores often auto-fill short barcodes from variant IDs; only trust 12-14 digit codes that are not the variant ID tail.
+        gtinValid: Boolean(barcode && /^\d{12,14}$/.test(barcode) && !String(variant.id ?? '').endsWith(barcode) && isValidGtin(barcode)),
         fetchedAt,
       }
     })
