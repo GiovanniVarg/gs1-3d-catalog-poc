@@ -1,18 +1,19 @@
 import '@fontsource-variable/inter/wght.css'
 import './style.css'
-import { categories, partPath, parts, type Category, type Part } from './catalog'
+import { bomUrl, cadUrl, categories, partPath, parts, type Category, type Part } from './catalog'
+import snapshotJson from './gtin-snapshot.json'
+import { escapeHtml, listingCard, qrCard, renderQr, sourceChips, type Listing, type Offers } from './offers-ui'
 import { parseDigitalLink } from './gtin'
 import * as icon from './icons'
 import type { Viewer } from './viewer'
 
 const sourceUrl = 'https://www.gs1us.org/industries-and-insights/by-topic/sunrise-2027'
-const modelUrl = 'https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept'
-const disclaimer = 'Independent proof of concept. Not affiliated with or endorsed by GS1 US.'
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const disclaimer = 'Not affiliated with or endorsed by Creality or GS1 US.'
 const iconsByCategory: Record<Category, string> = {
-  Exterior: icon.car, Lighting: icon.lightbulb, 'Wheels & brakes': icon.circleDot,
-  Interior: icon.layers, Powertrain: icon.settings,
+  Toolhead: icon.settings, Motion: icon.circleDot, 'Build platform': icon.layers,
+  Electronics: icon.lightbulb, 'Frame & hardware': icon.box,
 }
+const snapshot: Record<string, { gtin: string; partId: string; store: string; title: string; url: string; capturedAt: string }> = snapshotJson
 const app = document.querySelector<HTMLDivElement>('#app')!
 
 app.innerHTML = `
@@ -22,7 +23,7 @@ app.innerHTML = `
         <span class="brand-icon">${icon.box}</span><span>Parts Catalog <b>3D</b></span>
       </a>
       <div class="header-actions">
-        <span class="sample-pill"><i></i>Sample data</span>
+        <span class="live-pill"><i></i>Live data</span>
         <button id="sunrise-button" class="sunrise-pill" type="button" aria-label="Sunrise 2027 ready">${icon.qr} <span>Sunrise 2027<span class="ready-word"> ready</span></span> ${icon.arrowUpRight}</button>
       </div>
     </div>
@@ -30,9 +31,9 @@ app.innerHTML = `
   <main class="page">
     <section class="intro" aria-labelledby="page-title">
       <div>
-        <div class="eyebrow model-label">${icon.car} Vehicle catalog</div>
-        <h1 id="page-title">CarConcept</h1>
-        <p>Explore the model, identify a part, and see its specs and example sellers.</p>
+        <div class="eyebrow model-label">${icon.box} Parts Catalog 3D</div>
+        <h1 id="page-title">Creality Ender-3</h1>
+        <p class="data-legend"><span><b>BOM</b> = from Creality’s published BOM</span><span><b>LIVE</b> = fetched from retailer just now</span><span><b>UNVERIFIED</b> = compatibility unconfirmed</span></p>
       </div>
       <div class="intro-meta"><span class="live-dot"></span>Interactive 3D model</div>
     </section>
@@ -45,7 +46,7 @@ app.innerHTML = `
             <button id="close-parts" class="icon-button mobile-only" type="button" aria-label="Close parts list">${icon.x}</button>
           </div>
           <label class="search-box">
-            ${icon.search}<input type="search" id="part-search" placeholder="Search parts…" aria-label="Search by name, part number, GTIN, or category">
+            ${icon.search}<input type="search" id="part-search" placeholder="Search parts…" aria-label="Search by name, Creality part code, or category">
             <kbd aria-hidden="true">/</kbd>
           </label>
           <label class="category-box">
@@ -59,8 +60,8 @@ app.innerHTML = `
         <div id="parts-list" class="parts-list"></div>
       </aside>
 
-      <section class="stage card" aria-label="Interactive vehicle viewer">
-        <canvas id="model" aria-label="3D CarConcept. Use the parts list to select with the keyboard."></canvas>
+      <section class="stage card" aria-label="Interactive printer viewer">
+        <canvas id="model" aria-label="3D Creality Ender-3. Use the parts list to select with the keyboard."></canvas>
         <div class="stage-top">
           <div class="stage-label">${icon.box}<span>3D viewer</span></div>
           <div class="view-actions">
@@ -83,10 +84,10 @@ app.innerHTML = `
         <div id="empty-detail" class="empty-detail">
           <div class="empty-icon">${icon.crosshair}</div>
           <h2>Select a part</h2>
-          <p>Click the vehicle or choose a component from the catalog to see its details.</p>
+          <p>Click the printer or choose a component from the catalog to see its details.</p>
           <div class="empty-link">
             <div class="empty-link-icon">${icon.qr}</div>
-            <div><h3>GS1 Digital Link</h3><p>Each part has a QR code that opens its catalog page.</p></div>
+            <div><h3>Part QR codes</h3><p>Use the Digital Link tab to open or share a part’s catalog page.</p></div>
           </div>
         </div>
         <section id="detail" aria-labelledby="detail-title" hidden></section>
@@ -94,7 +95,7 @@ app.innerHTML = `
     </div>
   </main>
   <footer class="site-footer">
-    <span>Sample data for demonstration only.</span>
+    <span>Live retailer data, fetched on demand.</span>
     <span class="footer-disclaimer">${disclaimer}</span>
     <button id="about-button" type="button">${icon.info} About &amp; credits</button>
   </footer>
@@ -115,6 +116,7 @@ app.innerHTML = `
       <dt>Run</dt><dd>Brands use 2D codes to deepen consumer engagement.</dd>
     </dl>
     <p>Retailers and brands can adopt additional 2D capabilities after 2027.</p>
+    <p>This demo shows the gap: the original Ender-3’s parts have no public GTINs, so true GS1 Digital Link QR codes would need the brand to assign GTINs.</p>
     <h3>2025 GS1 US consumer survey</h3>
     <div class="survey">
       <div><strong>79%</strong><span>more likely to buy with a scannable QR code that gives more product information</span></div>
@@ -131,9 +133,9 @@ app.innerHTML = `
     </div>
     <h2 id="about-title">About &amp; credits</h2>
     <p>${disclaimer}</p>
-    <p>Prices, inventory, GTINs and sellers are sample data for demonstration only.</p>
-    <p><a href="${modelUrl}" target="_blank" rel="noopener">3D model: CarConcept by Eric Chadwick, Khronos glTF Sample Assets, CC BY 4.0</a>. The steering-wheel emblem and Khronos logo are Khronos trademarks.</p>
-    <a class="primary-link" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0 license ${icon.arrowUpRight}</a>
+    <p>Part codes, names, specifications and quantities come from the <a href="${bomUrl}" target="_blank" rel="noopener">published Ender-3 BOM</a>. Retailer prices, availability and barcodes are fetched on demand. Compatibility with the original Ender-3 is unverified.</p>
+    <p>3D model: <a href="${cadUrl}" target="_blank" rel="noopener">Creality Ender-3 CAD</a> by Shenzhen Creality 3D Technology Co., Ltd., GPL-3.0. Converted to glTF and simplified by Mainstay. The converted model is distributed under GPL-3.0.</p>
+    <a class="primary-link" href="/models/ender3.LICENSE.txt">Model license notice ${icon.arrowUpRight}</a>
   </dialog>
 `
 
@@ -157,6 +159,9 @@ let noticeTimer = 0
 let xray = true
 type Tab = 'overview' | 'sellers' | 'link'
 let activeTab: Tab = 'overview'
+let activeGtin: string | undefined
+let shownListing: Listing | undefined
+let offersState: { part: Part; response?: Offers; failed?: boolean } | undefined
 
 declare global {
   interface Window {
@@ -164,6 +169,9 @@ declare global {
       readonly ready: boolean
       readonly selectedId: string | null
       readonly exploded: boolean
+      readonly parts: typeof parts
+      select(id: string | null): void
+      explode(on?: boolean): void
       projectPart(id: string): { x: number; y: number } | null
     }
   }
@@ -173,13 +181,16 @@ window.__catalog = {
   get ready() { return viewer?.ready ?? false },
   get selectedId() { return selected?.id ?? null },
   get exploded() { return viewer?.exploded ?? false },
+  parts,
+  select(id) { setSelected(parts.find(part => part.id === id), 'push') },
+  explode(on) { setExploded(on ?? !viewer?.exploded) },
   projectPart(id) { return viewer?.projectPart(id) ?? null },
 }
 
 function renderList() {
   const query = search.value.toLowerCase().trim().split(/\s+/).filter(Boolean)
   const matching = parts.filter(part => {
-    const fields = [part.name, part.category, part.partNumber, part.gtin].join(' ').toLowerCase()
+    const fields = [part.name, part.category, ...part.bomLines.flatMap(line => [line.code, line.name, line.spec])].join(' ').toLowerCase()
     return (!category.value || part.category === category.value) && query.every(term => fields.includes(term))
   })
   element('part-count').textContent = matching.length === parts.length
@@ -188,25 +199,30 @@ function renderList() {
   list.innerHTML = matching.map(part => `
     <button class="part-row" type="button" data-part="${part.id}" aria-pressed="${selected?.id === part.id}">
       <span class="part-icon">${iconsByCategory[part.category]}</span>
-      <span class="part-row-text"><strong>${part.name}</strong><span>${part.partNumber}</span></span>
+      <span class="part-row-text"><strong>${part.name}</strong><span>${part.bomLines.length} BOM ${part.bomLines.length === 1 ? 'line' : 'lines'}</span></span>
       ${icon.chevronRight}
     </button>
   `).join('') || '<p class="no-results">No matching parts. Try another search or category.</p>'
 }
 
-function digitalCard(part: Part) {
-  const uri = location.origin + partPath(part)
-  return `
-    <div class="digital-card">
-      <div class="qr-frame"><canvas data-qr class="qr-image" role="img" aria-label="QR code for ${part.name}"></canvas></div>
-      <div class="digital-copy">
-        <strong>GS1 Digital Link</strong>
-        <p>Scan to open this part.</p>
-        <a class="digital-uri" href="${partPath(part)}">${uri}</a>
-        <button class="copy-button" type="button" data-copy>${icon.copy} Copy link</button>
-      </div>
-    </div>
-  `
+function loadOffers(part: Part) {
+  if (!part.live || offersState?.part === part) return
+  const request: NonNullable<typeof offersState> = { part }
+  offersState = request
+  void fetch('/api/offers?part=' + encodeURIComponent(part.id)).then(async response => {
+    if (!response.ok) throw new Error('Offers request failed')
+    request.response = await response.json() as Offers
+  }).catch(() => {
+    request.failed = true
+  }).finally(() => {
+    if (offersState === request && selected === part && activeTab !== 'overview') renderTab(part)
+  })
+}
+
+function retailerStatus() {
+  if (offersState?.failed) return '<p class="description" role="status">Retailer data is unavailable. <button class="copy-button" type="button" data-retry>Retry</button></p>'
+  if (!offersState?.response) return '<div class="offer-loading" role="status"><span>Searching retailers…</span><i></i><i></i></div>'
+  return ''
 }
 
 function renderTab(part: Part) {
@@ -217,48 +233,65 @@ function renderTab(part: Part) {
     button.setAttribute('aria-selected', String(active))
     button.tabIndex = active ? 0 : -1
   }
+
+  if (activeTab !== 'overview') loadOffers(part)
+  const offers = offersState?.response
   switch (activeTab) {
     case 'overview':
       content.innerHTML = `
         <p class="description">${part.description}</p>
-        <h3>Specifications</h3>
-        <dl class="specs">${[...part.specs, ['Qty per vehicle', part.quantity]].map(([key, value]) =>
-          `<div><dt>${key}</dt><dd>${value}</dd></div>`).join('')}</dl>
-        ${digitalCard(part)}
+        <div class="section-title"><h3>Creality bill of materials</h3><a href="${bomUrl}" target="_blank" rel="noopener">BOM source ${icon.arrowUpRight}</a></div>
+        <table class="bom-table">
+          <thead><tr><th scope="col">Creality code</th><th scope="col">BOM name</th><th scope="col">Spec</th><th scope="col">Qty</th></tr></thead>
+          <tbody>${part.bomLines.map(line => `<tr><td>${line.code}</td><td>${escapeHtml(line.name)}</td><td>${escapeHtml(line.spec || '—')}</td><td>${line.qty}</td></tr>`).join('')}</tbody>
+        </table>
+        <h3>CAD STEP names</h3>
+        <p class="description cad-names">${part.stepNames.map(step => typeof step === 'string' ? escapeHtml(step) : 'M2–M8 screws, washers and nuts').join(' · ')}</p>
       `
       break
-    case 'sellers':
+    case 'sellers': {
+      if (!part.live) {
+        content.innerHTML = '<p class="description">Standard metric hardware. No live listing lookup.</p>'
+        break
+      }
+      const captured = activeGtin ? snapshot[activeGtin] : undefined
+      const highlighted = offers?.listings.find(listing => listing.gtinValid && listing.barcode?.padStart(14, '0') === activeGtin
+        && listing.store === captured?.store && listing.url === captured.url)
+        ?? offers?.listings.find(listing => listing.gtinValid && listing.barcode?.padStart(14, '0') === activeGtin)
+      const listings = highlighted && offers ? [highlighted, ...offers.listings.filter(listing => listing !== highlighted)] : offers?.listings
       content.innerHTML = `
-        <h3>Example sellers</h3>
-        <p class="description">Sample prices and availability in USD.</p>
-        <div class="seller-list">
-          ${part.sellers.map(seller => `<a class="seller" href="${seller.url}" target="_blank" rel="noopener">
-            <div><strong>${seller.name}</strong><span>Example seller · ${seller.inStock ? 'In stock' : 'Backorder'}</span><span>${seller.shipping}</span></div>
-            <div><strong>${usd.format(seller.price)}</strong>${icon.arrowUpRight}</div>
-          </a>`).join('')}
-          <a class="seller nearby" href="${part.nearbyUrl}" target="_blank" rel="noopener">
-            ${icon.mapPin}<div><strong>Find nearby</strong><span>Example seller lookup</span></div>${icon.arrowUpRight}
-          </a>
-        </div>
+        <p class="description fit-note"><b>UNVERIFIED</b> Live results from each retailer’s public store search. Check the listing to confirm compatibility with the original Ender-3.</p>
+        ${retailerStatus()}
+        ${offers ? sourceChips(offers.sources) : ''}
+        ${captured && offers && !highlighted ? '<p class="description">The seller-listed GTIN from this link is unavailable in the current live results.</p>' : ''}
+        ${listings?.length
+          ? `<div class="seller-list">${listings.map(listing => listingCard(listing, offers!.listings.indexOf(listing), listing === highlighted)).join('')}</div>`
+          : offers ? '<p class="description" role="status">No live listings found</p>' : ''}
       `
       break
-    case 'link':
+    }
+    case 'link': {
+      const gtinPath = shownListing?.barcode ? '/01/' + shownListing.barcode.padStart(14, '0') : undefined
+      const gtinListings = offers?.listings.filter(listing => listing.gtinValid)
       content.innerHTML = `
-        <h3>GS1 Digital Link</h3>
-        <p class="description">Open this part directly by scanning the QR code or sharing the link.</p>
-        ${digitalCard(part)}
-        <div class="gtin-note"><strong>${part.gtin}</strong><p>Sample GTIN (GS1 example prefix 0614141 — not a registered product)</p></div>
+        <p class="description">No public GTIN for this part — GS1 Digital Link requires a GTIN assigned by the brand owner (Creality).</p>
+        ${qrCard(partPath(part), 'App deep link (not a GS1 Digital Link)')}
+        ${gtinPath && shownListing ? qrCard(gtinPath, 'GS1 Digital Link', `GTIN listed by ${shownListing.store} for ${shownListing.title} — not verified with GS1`) : ''}
+        ${part.live ? `
+          <h3 class="retailer-gtins">Seller-listed GTINs</h3>
+          ${retailerStatus()}
+          ${gtinListings?.length ? `<div class="seller-list">${gtinListings.map(listing => `
+            <div class="gtin-note"><strong>${escapeHtml(listing.barcode!)}</strong>
+            <p>${escapeHtml(listing.store)} · ${escapeHtml(listing.title)}</p>
+            <button class="copy-button" type="button" data-show-gtin="${offers!.listings.indexOf(listing)}">Show GS1 Digital Link</button></div>`).join('')}</div>`
+            : offers ? '<p class="description">No seller-listed GTINs with a valid check digit in the live results.</p>' : ''}
+        ` : ''}
       `
+      renderQr(content)
       break
+    }
   }
   content.scrollTop = 0
-  const qrCanvas = content.querySelector<HTMLCanvasElement>('[data-qr]')
-  if (qrCanvas) {
-    const uri = location.origin + partPath(part)
-    void import('qrcode').then(({ toCanvas }) =>
-      toCanvas(qrCanvas, uri, { scale: 6, margin: 4, color: { dark: '#101b30', light: '#ffffff' } })
-    ).catch(() => { qrCanvas.hidden = true })
-  }
 }
 
 function renderDetail(part: Part | undefined) {
@@ -277,15 +310,11 @@ function renderDetail(part: Part | undefined) {
       <div class="detail-top">
         <span class="detail-icon">${iconsByCategory[part.category]}</span>
         <span class="detail-category">${part.category}</span>
-        <span class="detail-sample">Sample data</span>
+        <span class="detail-bom">BOM</span>
         <button type="button" class="icon-button" data-clear aria-label="Close part details">${icon.x}</button>
       </div>
       <h2 id="detail-title">${part.name}</h2>
-      <p class="part-number">${part.partNumber}</p>
-      <div class="price-row">
-        <strong>${usd.format(part.price)}</strong>
-        <span class="stock ${part.stock === 0 ? 'unavailable' : part.stock <= 4 ? 'low' : ''}"><i></i>${part.status} · ${part.stock}</span>
-      </div>
+      <p class="part-number">${part.bomLines.length} published BOM ${part.bomLines.length === 1 ? 'line' : 'lines'}</p>
     </div>
     <div class="detail-tabs" role="tablist" aria-label="Part details">
       <button id="tab-overview" type="button" role="tab" data-tab="overview" aria-controls="detail-content">Overview</button>
@@ -298,16 +327,22 @@ function renderDetail(part: Part | undefined) {
 }
 
 function setSelected(part: Part | undefined, historyMode: 'push' | 'read', instant = false) {
+  const hadGtin = historyMode === 'push' && !!activeGtin
   if (historyMode === 'push') {
+    activeGtin = undefined
     const path = part ? partPath(part) : '/'
     if (path !== location.pathname || location.search || location.hash) history.pushState(null, '', path)
   }
   if (selected !== part) {
     selected = part
+    offersState = undefined
+    shownListing = undefined
     for (const row of list.querySelectorAll<HTMLButtonElement>('[data-part]')) {
       row.setAttribute('aria-pressed', String(row.dataset.part === part?.id))
     }
     renderDetail(part)
+  } else if (hadGtin && part) {
+    renderTab(part)
   }
   viewer?.select(part?.id ?? null, instant)
   const ghost = element<HTMLButtonElement>('ghost')
@@ -324,14 +359,25 @@ function showToast(message: string) {
 
 function readRoute(instant = false) {
   const route = parseDigitalLink(location.href)
-  const part = route.kind === 'part' ? parts.find(entry => entry.gtin === route.gtin) : undefined
+  const partMatch = /^\/part\/([a-z0-9-]+)\/?$/.exec(location.pathname)
+  activeGtin = route.kind === 'part' ? route.gtin : undefined
+  const captured = activeGtin ? snapshot[activeGtin] : undefined
+  const partId = captured?.partId ?? partMatch?.[1]
+  const part = parts.find(entry => entry.id === partId)
+  element('toast').hidden = true
   if (route.kind !== 'catalog' && !part) {
-    const value = route.kind === 'part' ? route.gtin : route.value
-    showToast(`No part with GTIN ${value || '(missing)'}`)
-  } else {
-    element('toast').hidden = true
+    showToast(route.kind === 'invalid' ? 'Invalid GTIN in this link' : `No catalog match for GTIN ${route.gtin}`)
+  } else if (!part && location.pathname.startsWith('/part/')) {
+    showToast('Part unavailable in this catalog')
   }
   setSelected(part, 'read', instant)
+  if (captured) activateTab('sellers')
+  else if (part) {
+    activeTab = 'overview'
+    shownListing = undefined
+    renderTab(part)
+    expandDetails(false)
+  }
 }
 
 function toggleList(open: boolean, restoreFocus = true) {
@@ -388,11 +434,12 @@ ghost.addEventListener('click', () => {
 })
 explode.disabled = true
 element<HTMLButtonElement>('reset-view').disabled = true
-explode.addEventListener('click', () => {
+function setExploded(on: boolean) {
   if (!viewer?.ready) return
-  viewer.setExploded(!viewer.exploded)
+  viewer.setExploded(on)
   explode.setAttribute('aria-pressed', String(viewer.exploded))
-})
+}
+explode.addEventListener('click', () => setExploded(!viewer?.exploded))
 element('reset-view').addEventListener('click', () => viewer?.resetView())
 element('open-parts').addEventListener('click', () => toggleList(true))
 element('close-parts').addEventListener('click', () => toggleList(false))
@@ -408,13 +455,25 @@ detail.addEventListener('click', async event => {
   }
   if (button.hasAttribute('data-expand')) expandDetails(!detail.classList.contains('expanded'))
   if (button.dataset.tab) activateTab(button.dataset.tab as Tab)
-  if (button.hasAttribute('data-copy')) {
+  if (button.hasAttribute('data-retry')) {
+    offersState = undefined
+    renderTab(selected)
+  }
+  if (button.dataset.showGtin !== undefined) {
+    const listing = offersState?.response?.listings[Number(button.dataset.showGtin)]
+    if (listing?.gtinValid) {
+      shownListing = listing
+      activateTab('link')
+      detail.querySelector<HTMLElement>('[data-qr^="/01/"]')?.closest<HTMLElement>('.digital-card')?.focus()
+    }
+  }
+  if (button.dataset.copy) {
     try {
-      await navigator.clipboard.writeText(location.origin + partPath(selected))
+      await navigator.clipboard.writeText(location.origin + button.dataset.copy)
       if (button.isConnected) button.innerHTML = `${icon.check} Copied`
-      showToast('Digital Link copied')
+      showToast('Link copied')
     } catch {
-      showToast('Select the Digital Link text to copy it.')
+      showToast('Select the link text to copy it.')
     }
   }
 })

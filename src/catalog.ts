@@ -1,152 +1,229 @@
-import { gtinCheckDigit } from './gtin'
+import { searches } from '../api/_lib/search.js'
 
-export const categories = ['Exterior', 'Lighting', 'Wheels & brakes', 'Interior', 'Powertrain'] as const
+export const bomUrl = 'https://github.com/Creality3DPrinting/Ender-3/blob/master/Ender-3%20Mechanical/Ender-3%20BOM.XLS'
+export const cadUrl = 'https://github.com/Creality3DPrinting/Ender-3'
+
+export const categories = ['Toolhead', 'Motion', 'Build platform', 'Electronics', 'Frame & hardware'] as const
 export type Category = typeof categories[number]
+type PartId = keyof typeof searches
 
-type PartDefinition = {
-  ref: number
-  id: string
+export type BomLine = { code: string; name: string; spec: string; qty: number }
+export type Part = {
+  id: PartId
   name: string
   category: Category
-  code: string
-  nodes: RegExp
+  stepNames: readonly (string | RegExp)[]
+  bomLines: readonly BomLine[]
   description: string
-  material: string
-  weight: string
-  dimensions: string
-  price: number
-  quantity: number
-  stock: number
-  explode?: [number, number, number]
+  live: { query: string; mustMatch: RegExp; excludes: RegExp } | null
 }
 
-const definitions: PartDefinition[] = [
-  {
-    ref: 1, id: 'hood', name: 'Hood assembly', category: 'Exterior', code: 'HD',
-    nodes: /^BodyHood/, description: 'Lightweight front hood with integrated air outlets and a reinforced inner panel. The assembly lifts for access to the front service bay.',
-    material: 'Aluminum alloy', weight: '8.4 kg', dimensions: '1,340 × 860 × 145 mm',
-    price: 649, quantity: 1, stock: 12, explode: [0, .95, 1.02],
-  },
-  {
-    ref: 2, id: 'door-left', name: 'Left door assembly', category: 'Exterior', code: 'DL',
-    nodes: /^BodyDoorL|^InteriorDoorL/, description: 'Left-hand door assembly with exterior skin, side glass, mirror and interior trim. The inner shell provides mounting points for the handle and window mechanism.',
-    material: 'Aluminum, glass and ABS', weight: '26.1 kg', dimensions: '1,280 × 985 × 210 mm',
-    price: 1275, quantity: 1, stock: 3,
-  },
-  {
-    ref: 3, id: 'door-right', name: 'Right door assembly', category: 'Exterior', code: 'DR',
-    nodes: /^BodyDoorR|^InteriorDoorR/, description: 'Right-hand door module including side glass, mirror, exterior handle and interior trim. The fitted perimeter seal helps reduce wind noise around the opening.',
-    material: 'Aluminum, glass and ABS', weight: '26.1 kg', dimensions: '1,280 × 985 × 210 mm',
-    price: 1275, quantity: 1, stock: 4,
-  },
-  {
-    ref: 4, id: 'windshield', name: 'Windshield & wipers', category: 'Exterior', code: 'WS',
-    nodes: /^BodyWindshield/, description: 'Curved laminated front glazing with a perimeter gasket and matching wiper set. The blade profile follows the sweep of the glass.',
-    material: 'Laminated glass and EPDM', weight: '12.2 kg', dimensions: '1,380 × 690 × 95 mm',
-    price: 429, quantity: 1, stock: 9, explode: [0, .81, .38],
-  },
-  {
-    ref: 5, id: 'headlights', name: 'Headlight set', category: 'Lighting', code: 'HL',
-    nodes: /^BodyHeadlights$/, description: 'Paired front light modules shaped to follow the hood and fenders. Each sealed housing contains the low beam, high beam and daytime running light.',
-    material: 'Polycarbonate and aluminum', weight: '3.2 kg / set', dimensions: '360 × 165 × 110 mm each',
-    price: 539, quantity: 1, stock: 14, explode: [0, .08, 1.62],
-  },
-  {
-    ref: 6, id: 'taillights', name: 'Taillight set', category: 'Lighting', code: 'TL',
-    nodes: /^BodyTaillights|^BodyTurnsignalsRear/, description: 'Matched rear lamp assemblies with brake lights and turn signals. The molded lenses follow the rear body panel contours.',
-    material: 'Acrylic and ABS', weight: '2.4 kg / set', dimensions: '320 × 118 × 90 mm each',
-    price: 315, quantity: 1, stock: 0, explode: [0, .44, -1.1],
-  },
-  ...([
-    [7, 'front-left', 'Front left wheel', 'FL', 'FrontL', 'front', 'left'],
-    [8, 'front-right', 'Front right wheel', 'FR', 'FrontR', 'front', 'right'],
-    [9, 'rear-left', 'Rear left wheel', 'RL', 'RearL', 'rear', 'left'],
-    [10, 'rear-right', 'Rear right wheel', 'RR', 'RearR', 'rear', 'right'],
-  ] as const).map(([ref, id, name, code, node, axle, side]): PartDefinition => ({
-    ref, id, name, category: 'Wheels & brakes', code: 'W' + code,
-    nodes: new RegExp('^Wheel' + node + '$'),
-    description: `Mounted alloy wheel and directional tire for the ${axle} ${side} corner. The assembly is supplied balanced with a valve stem installed.`,
-    material: 'Forged aluminum and rubber', weight: axle === 'front' ? '19.6 kg' : '21.2 kg',
-    dimensions: axle === 'front' ? '245/35 R20 on 20 × 8.5 in' : '275/35 R20 on 20 × 9.5 in',
-    price: axle === 'front' ? 485 : 525, quantity: 1, stock: ref === 9 ? 2 : 8,
-  })),
-  {
-    ref: 11, id: 'brakes', name: 'Disc brake kit', category: 'Wheels & brakes', code: 'BK',
-    nodes: /^Wheel.*Brake(?:Disc|Pad)$/, description: 'Four-corner service kit with vented rotors and matching friction pads. Rotor ventilation helps dissipate heat during repeated braking.',
-    material: 'Cast iron and ceramic composite', weight: '28.4 kg / kit', dimensions: '350 mm front / 330 mm rear rotors',
-    price: 725, quantity: 1, stock: 6, explode: [0, .48, 0],
-  },
-  {
-    ref: 12, id: 'steering-wheel', name: 'Steering wheel', category: 'Interior', code: 'SW',
-    nodes: /^InteriorSteeringCylinder$|^InteriorSteeringBase$/, description: 'Compact three-spoke wheel with a wrapped grip and molded center trim. The hub interface matches the concept steering column.',
-    material: 'Magnesium and synthetic leather', weight: '1.8 kg', dimensions: '360 × 345 × 105 mm',
-    price: 249, quantity: 1, stock: 8, explode: [.24, 1.45, 1.43],
-  },
-  {
-    ref: 13, id: 'seats', name: 'Seat set', category: 'Interior', code: 'ST',
-    nodes: /^InteriorSeats/, description: 'Pair of contoured bucket seats with integrated headrests and adjustable slider frames. Bolstered cushions support the driver and passenger during cornering.',
-    material: 'Steel, molded foam and microfiber', weight: '29.2 kg / set', dimensions: '540 × 595 × 910 mm each',
-    price: 960, quantity: 1, stock: 5, explode: [0, 1.78, -.62],
-  },
-  {
-    ref: 14, id: 'pedals', name: 'Pedal set', category: 'Interior', code: 'PD',
-    nodes: /^InteriorPedal/, description: 'Accelerator and brake pedals with matching arms and textured contact faces. The compact mounting layout fits the concept footwell.',
-    material: 'Aluminum and stainless steel', weight: '1.4 kg / set', dimensions: '255 × 165 × 125 mm',
-    price: 145, quantity: 1, stock: 16, explode: [1.02, .74, 1.38],
-  },
-  {
-    ref: 15, id: 'engine', name: 'Engine assembly', category: 'Powertrain', code: 'EN',
-    nodes: /^Engine$/, description: 'Complete engine long block with the intake and accessory housing represented in the model. The assembly mounts to the concept vehicle cradle.',
-    material: 'Cast aluminum and steel', weight: '176 kg', dimensions: '725 × 680 × 655 mm',
-    price: 4895, quantity: 1, stock: 0, explode: [-.54, 1.23, -1.13],
-  },
-  {
-    ref: 16, id: 'axles', name: 'Axle set', category: 'Powertrain', code: 'AX',
-    nodes: /^Axles$/, description: 'Front and rear axle assemblies with matching hub interfaces. The shafts transfer drive loads while allowing movement through suspension travel.',
-    material: 'Heat-treated alloy steel', weight: '18.7 kg / set', dimensions: '1,565 mm front / 1,585 mm rear track',
-    price: 580, quantity: 1, stock: 3, explode: [0, -.51, .12],
-  },
-  {
-    ref: 17, id: 'roof-panel', name: 'Roof panel', category: 'Exterior', code: 'RF',
-    nodes: /^BodyRoofPanel$/, description: 'Formed outer roof panel with a bonded reinforcement layer. The curved edges align with the windshield header and side pillars.',
-    material: 'Carbon fiber composite', weight: '5.1 kg', dimensions: '1,230 × 940 × 75 mm',
-    price: 820, quantity: 1, stock: 4, explode: [0, 2.35, 0],
-  },
-  {
-    ref: 18, id: 'rear-hatch', name: 'Rear hatch & glass', category: 'Exterior', code: 'RH',
-    nodes: /^InteriorRearHatch$|^BodyRearwindow$/, description: 'Rear closure with bonded glazing and inner hatch trim. The frame includes attachment points for lift supports and the latch.',
-    material: 'Aluminum and tempered glass', weight: '14.3 kg', dimensions: '1,165 × 735 × 150 mm',
-    price: 765, quantity: 1, stock: 7, explode: [0, 1.08, -1.02],
-  },
+type BomRow = [code: string, name: string, spec: string, qty: number]
+
+function tag(
+  id: PartId, name: string, category: Category, stepNames: Part['stepNames'], description: string, rows: BomRow[],
+): Part {
+  return {
+    id, name, category, stepNames, description, live: searches[id],
+    bomLines: rows.map(([code, name, spec, qty]) => ({ code, name, spec, qty })),
+  }
+}
+
+// BOM rows are transcribed from data/ender3-bom.csv. STEP tags refer to CAD occurrences,
+// including grouped assemblies whose individual BOM lines are not separately modeled.
+export const parts: readonly Part[] = [
+
+  tag("hotend", "Hotend", "Toolhead", [
+    "Sprinkler assembly",
+  ], "The assembly includes a heat block, a 0.4 mm nozzle, a radiator, a 24 V heater and a nozzle thermistor.", [
+    ["400104004", "Heat block", "20*20*10", 1],
+    ["400106003", "nozzle", "0.4mm", 2],
+    ["400105008", "Radiator", "12*20*27.8mm,2*M3", 1],
+    ["400308002", "Heater", "24V，40W-L1000MM，Φ6*20", 1],
+    ["400303006", "Nozzle thermistor", "D1.8-L1000mm-100K", 1],
+    ["400107006", "Catheter", "D7-M6-L28mm", 1],
+  ]),
+  tag("hotend-fans", "Hotend fans & shroud", "Toolhead", [
+    "Fan assembly",
+  ], "Two 24 V 4010 fans, a fan cover and a nozzle fan duct are listed in the BOM.", [
+    ["400309032", "Cold section fan", "24V-4010-L1000-7600r", 1],
+    ["400309044", "Nozzle fan", "24V-4010-L1000-5800r", 1],
+    ["400101029", "Fan cover", "0.8mm", 1],
+    ["400402023", "Nozzle fan duct", "", 1],
+  ]),
+  tag("extruder", "Extruder", "Toolhead", [
+    "E housing", "E idler tensioner", "E gear", "Extrusion Spring",
+    "M6 Pneumatic joint",
+  ], "Extruder housing, idler tensioner, gear, spring and pneumatic joints.", [
+    ["400404033", "E housing", "", 1],
+    ["400404032", "E idler tensioner", "", 1],
+    ["400103001", "E gear", "D11-40", 1],
+    ["400204002", "Extrusion Spring", "1.1*8*L22", 5],
+    ["400210001", "Pneumatic joint", "D4M8", 1],
+    ["400210002", "M6 Pneumatic joint", "KJH04-06", 2],
+    ["400407013", "D4 Teflon tube", "D4-d2-L400mm", 1],
+  ]),
+  tag("steppers", "Stepper motors", "Motion", [
+    "42-34 motor", "40-42 motor",
+  ], "The BOM lists three 42-34 motors and one 42-40 motor. The CAD labels the latter “40-42 motor”.", [
+    ["400201001", "42-34 Motor", "JK42HS34-0844YA-03F", 3],
+    ["400201004", "42-40 Motor", "JK42HS40-1004AC-01F", 1],
+  ]),
+  tag("hotbed", "Heated bed", "Build platform", [
+    "Hot bed", "Y plate",
+  ], "24 V heated bed, 235 × 235 mm, 220 W per the Ender-3 BOM.", [
+    ["400302026", "Hot bed", "24V，235*235mm，220W", 1],
+    ["400101129", "Y plate", "4mm", 1],
+    ["400303022", "Bed  thermistor", "D1.8-L700mm-100K", 1],
+    ["400505021", "Fiber board", "235*235*1.0mm", 1],
+    ["400404030", "Hot bed wire bracket", "", 1],
+    ["400404031", "Hot bed line support cover", "", 1],
+  ]),
+  tag("leveling", "Bed leveling", "Build platform", [
+    "Bed level springs", "Hand Twisted Nut",
+  ], "The CAD shows springs and hand-twisted nuts under the bed. The BOM does not list a separate bed spring code.", [
+    ["400404040", "Hand Twisted Nut", "D60mm", 4],
+  ]),
+  tag("mainboard", "Mainboard & case fan", "Electronics", [
+    "Control panel", "Case fan", "Sheetmetal enclosure top", "Sheetmetal enclosure bottom",
+  ], "1284P control panel, 24 V case fan and two sheet-metal enclosure pieces.", [
+    ["200101027", "Control panel", "1284P", 1],
+    ["400309045", "Case fan", "24V-4010-L150mm", 1],
+    ["400101130", "Sheetmetal enclosure bottom", "0.8MM", 1],
+    ["400101131", "Sheetmetal enclosure top", "0.8MM", 1],
+  ]),
+  tag("lcd", "LCD & knob", "Electronics", [
+    "lcd", "lcd Knob", "LCD support",
+  ], "LCD and knob mounted on the LCD support.", [
+    ["200102010", "LCD", "", 1],
+    ["400307001", "lcd Knob", "", 1],
+    ["400101133", "LCD support", "2MM", 1],
+  ]),
+  tag("psu", "Power supply", "Electronics", [
+    "24V15A power supply", "Power holder", "power switch",
+  ], "24 V, 15 A power supply with a holder and a 10 A power switch.", [
+    ["400301008", "24V15A power supply", " 24V 15A", 1],
+    ["400402028", "Power holder", "2mm", 1],
+    ["400305007", "power switch", "10A", 1],
+  ]),
+  tag("belts", "X & Y belts", "Motion", [
+    "X belt", "Y belt",
+  ], "The BOM lists separate 6 mm-wide belts for the X and Y axes.", [
+    ["400212037", "X   belt", "2M-W6-L786mm", 1],
+    ["400212038", "Y  belt", "2M-W6-L743mm", 1],
+  ]),
+  tag("pulleys", "Pulleys", "Motion", [
+    "2GT-pulley", "pulley mount",
+  ], "The BOM lists two 2GT pulleys. The CAD also shows pulley mounts.", [
+    ["400211009", "2GT-pulley", "2GT-d5-20-6mm", 2],
+  ]),
+  tag("wheels", "V-wheels", "Motion", [
+    "V Wheel Component", "Eccentric column", "Spacers for rollers",
+  ], "Rollers, 625ZZ bearings, eccentric columns and roller spacers.", [
+    ["400403003", "Rollers", "", 13],
+    ["400202004", "625ZZ Pillow", "625ZZ", 26],
+    ["400108002", "Eccentric column", "D7.2-d5-H-8.35mm", 5],
+    ["400108001", "Spacers for rollers", "D8-d5-H-8.35mm", 11],
+  ]),
+  tag("z-axis", "Z-axis drive", "Motion", [
+    "Z threaded rod", "z nut", "Z coupler", "Z motor bracket",
+  ], "T8 threaded rod and nut, with a coupler and a Z motor bracket.", [
+    ["400206017", "Z threaded rod", "T8*8-L365mm", 1],
+    ["400205111", "z nut", "T8*8", 1],
+    ["400208004", "Z coupler", "D5*8", 1],
+    ["400402010", "Z motor bracket", "", 1],
+  ]),
+  tag("frame", "Frame extrusions", "Frame & hardware", [
+    "2020 profile", "2040 profile", "4040 profile", "2020 Endcap",
+    "4040 Endcap",
+  ], "2020, 2040 and 4040 profiles form the frame, with endcaps shown on the 2020 and 4040 profiles.", [
+    ["400102065", "2020 Top Profile", "20*20-L330", 1],
+    ["400102066", "2020 X Profile", "20*20-L345", 1],
+    ["400102067", "2040 Y Profile", "20*40-L330", 1],
+    ["400102068", "2040 Right Profile", "20*40-L400", 1],
+    ["400102069", "2040 Left Profile", "20*40-L400", 1],
+    ["400102070", "4040 Central Profile", "40*40-L250", 1],
+    ["400102071", "4040 Left Profile", "40*40-L290", 1],
+    ["400102072", "4040 Right Profile", "40*40-L290-2", 1],
+    ["400402020", "2020 Endcap", "2020", 2],
+    ["400404041", "4040 Endcap", "ABS", 2],
+  ]),
+  tag("limit-switches", "Limit switches", "Electronics", [
+    "limit switch", "Z Limit Switch assembly", "X limit switch bracket", "Y limit switch bracket",
+  ], "Three 3-pin limit switches and X, Y and Z brackets.", [
+    ["400304001", "limit switch", "3PIN", 3],
+    ["400404038", "X limit switch bracket", "ABS", 1],
+    ["400402032", "Y limit switch bracket", "ABS", 1],
+    ["400402033", "Z limit switch bracket", "ABS", 1],
+  ]),
+  tag("carriages", "Carriages & brackets", "Frame & hardware", [
+    "Y Motor holder", "X motor bracket", "E motor bracket", "E plate",
+    "Z Stent", "X Adjustment Block", "Support frame", "Support tube",
+    "Copper cover", "F688 pillow", "624U pillow", "M30 Plastic nut",
+    "M4 T-Slot Nut", "M5 T-Slot Nut",
+  ], "Motors and moving assemblies are mounted on plates and brackets. This group also includes the support tube and its mounting hardware.", [
+    ["400101005", "Y Motor holder", "3mm", 1],
+    ["400101104", "X motor bracket", "3mm，B1", 1],
+    ["400101103", "E motor bracket", "2.5mm，B1", 1],
+    ["400101002", "E plate", "2.5mm", 1],
+    ["400101027", "Z Stent", "3.0mm", 1],
+    ["400101006", "X Adjustment Block", "3mm", 1],
+    ["400101007", "Y Adjustment Block", "3mm", 1],
+    ["400101081", "Support frame", "2.0mm", 1],
+    ["400403004", "Support tube", "", 1],
+    ["400214001", "Copper cover", "D8-0.8", 4],
+    ["400202003", "F688ZZ  Pillow", "F688ZZ", 4],
+    ["400202002", "624U  Pillow", "624U", 1],
+    ["400403005", "M30 Plastic nut", "M30*6.5", 2],
+    ["400205101", "M4  T-Slot Nut", "M4T", 8],
+    ["400205102", "M5  T-Slot Nut", "M5T", 3],
+  ]),
+  tag("fasteners", "Metric fasteners", "Frame & hardware", [
+    "M340 Flush Head Screw",
+    /^M[2-8](?!\d)(?! T-Slot Nut$).*(?:screw|washer|nut)$/i,
+  ], "Standard metric hardware. Some fastener names differ between the CAD and the BOM. The table lists the published BOM lines.", [
+    ["400205002", "M2*8  Socket Head Screw", "M2*8", 2],
+    ["400205003", "M2*10 Socket Head Screw", "M2*10", 2],
+    ["400205007", "M3*18 Socket Head Screw", "M3*18", 1],
+    ["400205013", "M4*8Socket Head Screw", "M4*8", 7],
+    ["400205014", "M4*10 Socket Head Screw", "M4*10", 2],
+    ["400205015", "M4*16 Socket Head Screw", "M4*16", 4],
+    ["400205018", "M3*3  screw", "M3*3", 4],
+    ["400205019", "M4  screw", "M4", 4],
+    ["400205021", "M3*4  Pan Head Screw", "M3*4", 1],
+    ["400205029", "M3*6  Pan Head Screw", "M3*6", 18],
+    ["400205031", "M3*10 Pan Head Screw", "M3*10", 12],
+    ["400205032", "M3*16 Pan Head Screw", "M3*16", 5],
+    ["400205044", "M5*8 Pan Head Screw", "M5*8", 8],
+    ["400205053", "M5*30 Pan Head Screw", "M5*30", 10],
+    ["400205055", "M5*40 Pan Head Screw", "M5*40", 3],
+    ["400205060", "M3*10 Pan Head Screw", "M3*10-P", 1],
+    ["400205068", "M4*14  Pan Head Screw", "M4*14-P", 2],
+    ["400205074", "M4*35 Flush Head Screw", "M4*35-P", 4],
+    ["400205097", "M5 Self-locking nut", "M5", 13],
+    ["400205098", "M8 Self-locking nut", "M8", 2],
+    ["400205105", "M3 Split Washer", "M3", 6],
+    ["400205106", "M4  Split Washer", "M4", 7],
+    ["400205107", "M5  Split Washer", "M5", 12],
+    ["400205109", "M5  washer", "M5", 5],
+    ["400205110", "M5  washer1", "5*8*1", 13],
+    ["400205122", "M4*20  Socket Head Screw", "M4*20", 3],
+    ["400205140", "M4*18  Pan Head Screw", "M4*18-P", 2],
+    ["400205141", "M3*40  Pan Head Screw", "M3*40-P", 4],
+    ["400205144", "M3*18  Pan Head Screw", "M3*18-P", 2],
+    ["400205148", "M4*16 Screw", "", 5],
+    ["400205153", "M3*6   Screw", "M3*6", 2],
+    ["400205163", "M5*25 Socket Head Screw", "M5*25", 6],
+    ["400205165", "M5*40 Socket Head Screw", "M5*40", 2],
+    ["400205166", "M5*45 Socket Head Screw", "M5*45", 10],
+    ["400205176", "M8*35  Pan Head Screw", "M8*35", 2],
+  ]),
 ]
 
-export const parts = definitions.map(part => {
-  const gtinBody = '00614141' + String(part.ref).padStart(5, '0')
-  const partNumber = `MCX-${part.code}-${1000 + part.ref}`
-  const sellerPath = `https://example.com/parts/${part.id}`
-  return {
-    ...part,
-    partNumber,
-    gtin: gtinBody + gtinCheckDigit(gtinBody),
-    status: part.stock === 0 ? 'Backorder' : part.stock <= 4 ? 'Low stock' : 'In stock',
-    specs: [
-      ['Material', part.material],
-      ['Weight', part.weight],
-      ['Dimensions', part.dimensions],
-      ['Fitment', 'CarConcept MCX'],
-      ['Warranty', '12 months (sample)'],
-    ],
-    sellers: [
-      { name: 'Example Auto Parts Co.', price: part.price, shipping: part.stock ? 'Ships in 2–4 days' : 'ETA 2–3 weeks', inStock: part.stock > 0, url: sellerPath + '/example-auto' },
-      { name: 'Sample OEM Direct', price: part.price + 24, shipping: 'Ships in 3–5 days', inStock: true, url: sellerPath + '/sample-oem' },
-      { name: 'DemoParts Marketplace', price: part.price - 15, shipping: 'ETA 1–2 weeks', inStock: false, url: sellerPath + '/demoparts' },
-    ],
-    nearbyUrl: sellerPath + '/nearby',
-  }
-})
+export function matchesStepName(part: Part, stepName: string) {
+  return part.stepNames.some(tag => typeof tag === 'string' ? tag === stepName : tag.test(stepName))
+}
 
-export type Part = typeof parts[number]
-
-export function partPath(part: Part): string {
-  return '/01/' + part.gtin
+export function partPath(part: Part) {
+  return '/part/' + part.id
 }

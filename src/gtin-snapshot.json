@@ -1,0 +1,578 @@
+{
+  "00000024547284": {
+    "gtin": "00000024547284",
+    "partId": "hotend",
+    "store": "West3D",
+    "title": "West3D's Undertaker Tungsten Carbide Nozzle (V6, Volcano, MK8, K1, FIN)",
+    "url": "https://west3d.com/products/west3ds-undertaker-tungsten-carbide-nozzle?variant=45518524547284",
+    "capturedAt": "2026-11-22T00:38:36.219Z"
+  },
+  "05060567860153": {
+    "gtin": "05060567860153",
+    "partId": "hotend",
+    "store": "E3D",
+    "title": "V6 1.75mm All-Metal HotEnd",
+    "url": "https://e3d-online.com/products/v6-all-metal-hotend?variant=40923457683515",
+    "capturedAt": "2026-11-22T00:38:36.257Z"
+  },
+  "00016627556233": {
+    "gtin": "00016627556233",
+    "partId": "hotend",
+    "store": "Printed Solid",
+    "title": "E3D V6 Hot End - 1.75mm",
+    "url": "https://printedsolid.com/products/e3d-hot-end-kit-v6?variant=22124184600661",
+    "capturedAt": "2026-11-22T00:38:36.358Z"
+  },
+  "00016627556240": {
+    "gtin": "00016627556240",
+    "partId": "hotend",
+    "store": "Printed Solid",
+    "title": "E3D V6 Hot End - 1.75mm",
+    "url": "https://printedsolid.com/products/e3d-hot-end-kit-v6?variant=4032407555",
+    "capturedAt": "2026-11-22T00:38:36.358Z"
+  },
+  "07432114996901": {
+    "gtin": "07432114996901",
+    "partId": "hotend",
+    "store": "DigitMakers",
+    "title": "Micro Swiss All Metal Hotend Kit for Creality CR-10 / CR10S / CR20 / Ender 2, 3, 5 Printers",
+    "url": "https://www.digitmakers.ca/products/micro-swiss-all-metal-hotend-kit-for-cr-10-printers?variant=2640301588491",
+    "capturedAt": "2026-11-22T00:38:36.200Z"
+  },
+  "00016627556264": {
+    "gtin": "00016627556264",
+    "partId": "hotend",
+    "store": "Printed Solid",
+    "title": "E3D V6 Hot End - 1.75mm",
+    "url": "https://printedsolid.com/products/e3d-hot-end-kit-v6?variant=4032407619",
+    "capturedAt": "2026-11-22T00:38:36.358Z"
+  },
+  "06973090162573": {
+    "gtin": "06973090162573",
+    "partId": "hotend",
+    "store": "Fabreeko",
+    "title": "Phaetus Dragon UHF Hotend Ultra-High-Flow 1.75 mm",
+    "url": "https://www.fabreeko.com/products/phaetus-dragon-uhf?variant=42706499240191",
+    "capturedAt": "2026-11-22T00:38:36.221Z"
+  },
+  "05063384003017": {
+    "gtin": "05063384003017",
+    "partId": "hotend",
+    "store": "E3D",
+    "title": "DiamondBack Creality Unicorn Nozzles",
+    "url": "https://e3d-online.com/products/diamondback-creality-unicorn-nozzles?variant=54875164705148",
+    "capturedAt": "2026-11-22T00:38:36.257Z"
+  },
+  "05063384003024": {
+    "gtin": "05063384003024",
+    "partId": "hotend",
+    "store": "E3D",
+    "title": "DiamondBack Creality Unicorn Nozzles",
+    "url": "https://e3d-online.com/products/diamondback-creality-unicorn-nozzles?variant=54875164737916",
+    "capturedAt": "2026-11-22T00:38:36.257Z"
+  },
+  "00000045608148": {
+    "gtin": "00000045608148",
+    "partId": "hotend",
+    "store": "West3D",
+    "title": "West3D's Undertaker Tungsten Carbide Nozzle (V6, Volcano, MK8, K1, FIN)",
+    "url": "https://west3d.com/products/west3ds-undertaker-tungsten-carbide-nozzle?variant=45518845608148",
+    "capturedAt": "2026-11-22T00:38:36.219Z"
+  },
+  "06973090164652": {
+    "gtin": "06973090164652",
+    "partId": "hotend",
+    "store": "Fabreeko",
+    "title": "Phaetus Rapido 2 Hotend  HF & UHF V6-Compatible High-Flow",
+    "url": "https://www.fabreeko.com/products/phaetus-rapido-high-flow-hotend?variant=42758910935295",
+    "capturedAt": "2026-11-22T00:38:36.221Z"
+  },
+  "05061011014153": {
+    "gtin": "05061011014153",
+    "partId": "hotend-fans",
+    "store": "3D Printing Canada",
+    "title": "E3D 4010 Fan 24V (Titan Aero)",
+    "url": "https://www.3dprintingcanada.com/products/official-e3d-4010-fan-24v-titan-aero?variant=14255759556651",
+    "capturedAt": "2026-11-22T00:38:36.734Z"
+  },
+  "00000035265535": {
+    "gtin": "00000035265535",
+    "partId": "hotend-fans",
+    "store": "Fabreeko",
+    "title": "HoneyBadger 4010 Axial Fans — High-Speed Tach (Performance) or Balance Series",
+    "url": "https://www.fabreeko.com/products/4010-axial-fan-by-honeybadger?variant=44109335265535",
+    "capturedAt": "2026-11-22T00:38:36.675Z"
+  },
+  "05061011010148": {
+    "gtin": "05061011010148",
+    "partId": "hotend-fans",
+    "store": "E3D",
+    "title": "3 Wire Roto Fan Kit",
+    "url": "https://e3d-online.com/products/3-wire-roto-fan-kit?variant=41547810799675",
+    "capturedAt": "2026-11-22T00:38:36.628Z"
+  },
+  "05061011014061": {
+    "gtin": "05061011014061",
+    "partId": "hotend-fans",
+    "store": "E3D",
+    "title": "E-FAN-30-30-10-24V-BK",
+    "url": "https://e3d-online.com/products/e-fan-30-30-10-24v-bk?variant=39579049656379",
+    "capturedAt": "2026-11-22T00:38:36.628Z"
+  },
+  "00000038884863": {
+    "gtin": "00000038884863",
+    "partId": "hotend-fans",
+    "store": "Fabreeko",
+    "title": "HoneyBadger Performance Series 4010 Blower Fan",
+    "url": "https://www.fabreeko.com/products/4010-blower-p-series-fan-by-honeybadger?variant=44301938884863",
+    "capturedAt": "2026-11-22T00:38:36.675Z"
+  },
+  "00016627559418": {
+    "gtin": "00016627559418",
+    "partId": "extruder",
+    "store": "Printed Solid",
+    "title": "Bondtech BMG Extruder Creality3D kit  CR-10/Ender 3 mount (EOL)",
+    "url": "https://printedsolid.com/products/bondtech-bmg-extruder-kit-creality-cr-10-ender-3?variant=32582114508885",
+    "capturedAt": "2026-11-22T00:38:37.095Z"
+  },
+  "00769407527663": {
+    "gtin": "00769407527663",
+    "partId": "extruder",
+    "store": "DigitMakers",
+    "title": "Micro Swiss Direct Drive Extruder for Creality CR-10/Ender 3",
+    "url": "https://www.digitmakers.ca/products/micro-swiss-direct-drive-extruder-for-creality-cr-10-ender-3?variant=37150888198306",
+    "capturedAt": "2026-11-22T00:38:37.025Z"
+  },
+  "05061011018991": {
+    "gtin": "05061011018991",
+    "partId": "extruder",
+    "store": "E3D",
+    "title": "Hemera XS Extruder",
+    "url": "https://e3d-online.com/products/revo-hemera-xs-coldside-kits?variant=41629443031099",
+    "capturedAt": "2026-11-22T00:38:36.973Z"
+  },
+  "05061011019004": {
+    "gtin": "05061011019004",
+    "partId": "extruder",
+    "store": "E3D",
+    "title": "Hemera XS Extruder",
+    "url": "https://e3d-online.com/products/revo-hemera-xs-coldside-kits?variant=41629443063867",
+    "capturedAt": "2026-11-22T00:38:36.973Z"
+  },
+  "05061011019059": {
+    "gtin": "05061011019059",
+    "partId": "extruder",
+    "store": "E3D",
+    "title": "Hemera XS Extruder",
+    "url": "https://e3d-online.com/products/revo-hemera-xs-coldside-kits?variant=41629443096635",
+    "capturedAt": "2026-11-22T00:38:36.973Z"
+  },
+  "00769407527656": {
+    "gtin": "00769407527656",
+    "partId": "extruder",
+    "store": "Micro Swiss",
+    "title": "Microswiss Direct Drive Extruder for Creality CR-10 / Ender 3 Printers",
+    "url": "https://store.micro-swiss.com/products/micro-swiss-direct-drive-extruder?variant=31316019773507",
+    "capturedAt": "2026-11-22T00:38:36.939Z"
+  },
+  "06975415151057": {
+    "gtin": "06975415151057",
+    "partId": "extruder",
+    "store": "Fabreeko",
+    "title": "Orbiter 3.0 Extruder with integrated electronics 1.75mm by LDO",
+    "url": "https://www.fabreeko.com/products/orbiter-3-0-extruder-with-integrated-electronics-1-75mm-by-ldo?variant=44596475855103",
+    "capturedAt": "2026-11-22T00:38:36.982Z"
+  },
+  "00850041631042": {
+    "gtin": "00850041631042",
+    "partId": "extruder",
+    "store": "DigitMakers",
+    "title": "Micro Swiss NG™ Direct Drive Extruder for Creality Ender 6",
+    "url": "https://www.digitmakers.ca/products/micro-swiss-ng-direct-drive-extruder-for-creality-ender-6?variant=43657707684070",
+    "capturedAt": "2026-11-22T00:38:37.025Z"
+  },
+  "00016627557230": {
+    "gtin": "00016627557230",
+    "partId": "extruder",
+    "store": "Printed Solid",
+    "title": "E3D Revo™ Micro  LGX® Extruder (EOL)",
+    "url": "https://printedsolid.com/products/e3d-revo-micro-lgx-extruder?variant=40664097423445",
+    "capturedAt": "2026-11-22T00:38:37.095Z"
+  },
+  "00016627557278": {
+    "gtin": "00016627557278",
+    "partId": "extruder",
+    "store": "Printed Solid",
+    "title": "E3D Revo™ Micro  LGX® Extruder (EOL)",
+    "url": "https://printedsolid.com/products/e3d-revo-micro-lgx-extruder?variant=40664097488981",
+    "capturedAt": "2026-11-22T00:38:37.095Z"
+  },
+  "00850041631264": {
+    "gtin": "00850041631264",
+    "partId": "extruder",
+    "store": "Micro Swiss",
+    "title": "Microswiss NG™ Direct Drive Extruder for Creality Ender 3 V2 Neo",
+    "url": "https://store.micro-swiss.com/products/micro-swiss-ng-direct-drive-extruder-for-creality-ender-3-v2-neo?variant=40687922872387",
+    "capturedAt": "2026-11-22T00:38:36.939Z"
+  },
+  "05063384000382": {
+    "gtin": "05063384000382",
+    "partId": "extruder",
+    "store": "E3D",
+    "title": "Roto Extruder Prusa MK3 Edition",
+    "url": "https://e3d-online.com/products/roto-extruder-prusa-mk3-edition?variant=41679000338491",
+    "capturedAt": "2026-11-22T00:38:36.973Z"
+  },
+  "00016627557223": {
+    "gtin": "00016627557223",
+    "partId": "extruder",
+    "store": "Printed Solid",
+    "title": "E3D Revo™ Micro  LGX® Extruder (EOL)",
+    "url": "https://printedsolid.com/products/e3d-revo-micro-lgx-extruder?variant=40664097390677",
+    "capturedAt": "2026-11-22T00:38:37.095Z"
+  },
+  "00016627557247": {
+    "gtin": "00016627557247",
+    "partId": "extruder",
+    "store": "Printed Solid",
+    "title": "E3D Revo™ Micro  LGX® Extruder (EOL)",
+    "url": "https://printedsolid.com/products/e3d-revo-micro-lgx-extruder?variant=40664097456213",
+    "capturedAt": "2026-11-22T00:38:37.095Z"
+  },
+  "07350011410552": {
+    "gtin": "07350011410552",
+    "partId": "steppers",
+    "store": "DigitMakers",
+    "title": "Bondtech Nema 17 Pancake Stepper Motor 25 mm",
+    "url": "https://www.digitmakers.ca/products/nema17-pancake-stepper-25-mm?variant=3148244746251",
+    "capturedAt": "2026-11-22T00:38:37.350Z"
+  },
+  "00000048976596": {
+    "gtin": "00000048976596",
+    "partId": "steppers",
+    "store": "West3D",
+    "title": "LDO Motors 42STH48-2504AH NEMA 17 Stepper Motor - High Performance High Temperature",
+    "url": "https://west3d.com/products/ldo-motors-42sth48-2504ah-nema-17-stepper-motor?variant=46318681522388",
+    "capturedAt": "2026-11-22T00:38:37.426Z"
+  },
+  "07350011410576": {
+    "gtin": "07350011410576",
+    "partId": "steppers",
+    "store": "DigitMakers",
+    "title": "Bondtech Nema 17 Geared Stepper",
+    "url": "https://www.digitmakers.ca/products/bondtech-nema-17-geared-stepper?variant=9623658954788",
+    "capturedAt": "2026-11-22T00:38:37.350Z"
+  },
+  "00016627554734": {
+    "gtin": "00016627554734",
+    "partId": "steppers",
+    "store": "Printed Solid",
+    "title": "LDO- 42STH34-1004L321EC (mk3 Lead Steppers) (EOL)",
+    "url": "https://printedsolid.com/products/ldo-42sth34-1004l321ec-mk3-lead-steppers-eol?variant=41014653911125",
+    "capturedAt": "2026-11-22T00:38:37.372Z"
+  },
+  "00016627554741": {
+    "gtin": "00016627554741",
+    "partId": "steppers",
+    "store": "Printed Solid",
+    "title": "LDO- 42STH34-1004L321EC (mk3 Lead Steppers) (EOL)",
+    "url": "https://printedsolid.com/products/ldo-42sth34-1004l321ec-mk3-lead-steppers-eol?variant=41014653943893",
+    "capturedAt": "2026-11-22T00:38:37.372Z"
+  },
+  "05061011014689": {
+    "gtin": "05061011014689",
+    "partId": "steppers",
+    "store": "E3D",
+    "title": "Genuine Watterott TMC2208 Stepper Motor Driver & Heatsink.",
+    "url": "https://e3d-online.com/products/genuine-watterott-tmc2208-stepper-motor-driver-heatsink?variant=31134356504635",
+    "capturedAt": "2026-11-22T00:38:37.300Z"
+  },
+  "00000015000507": {
+    "gtin": "00000015000507",
+    "partId": "hotbed",
+    "store": "DigitMakers",
+    "title": "Spring Steel Sheet with PEI Coating Various Sizes",
+    "url": "https://www.digitmakers.ca/products/spring-steel-sheet-with-pei-coating-various-sizes?variant=30414433124483",
+    "capturedAt": "2026-11-22T00:38:37.670Z"
+  },
+  "00000042543060": {
+    "gtin": "00000042543060",
+    "partId": "hotbed",
+    "store": "West3D",
+    "title": "Magnetic Flex Plate Flexible Build Surface with PEI Double-Sided and Single-Sided",
+    "url": "https://west3d.com/products/double-sided-texture-smooth-flex-plate-with-3m-magnetic-backing-energetic-west3d-collab?variant=43173742543060",
+    "capturedAt": "2026-11-22T00:38:37.708Z"
+  },
+  "00000048119252": {
+    "gtin": "00000048119252",
+    "partId": "hotbed",
+    "store": "West3D",
+    "title": "Magnetic Flex Plate Flexible Build Surface with PEI Double-Sided and Single-Sided",
+    "url": "https://west3d.com/products/double-sided-texture-smooth-flex-plate-with-3m-magnetic-backing-energetic-west3d-collab?variant=43497948119252",
+    "capturedAt": "2026-11-22T00:38:37.708Z"
+  },
+  "00000015832276": {
+    "gtin": "00000015832276",
+    "partId": "hotbed",
+    "store": "West3D",
+    "title": "Biqu CryoGrip Pro Glacier Build Plate for 3D Printers - Extreme Grip Semi-Smooth Texture",
+    "url": "https://west3d.com/products/biqu-cryogrip-pro-glacier-build-plate-for-k1-max-ender-3-v3-plus-and-s1-plus?variant=46103615832276",
+    "capturedAt": "2026-11-22T00:38:37.708Z"
+  },
+  "08594173671874": {
+    "gtin": "08594173671874",
+    "partId": "hotbed",
+    "store": "Printed Solid",
+    "title": "Original Prusa Double-sided Textured PEI Powder-coated Spring Steel Sheet [MK2.5, MK3/S/+, MK4]",
+    "url": "https://printedsolid.com/products/original-prusa-mk2-5-mk3s-double-sided-textured-pei-powder-coated-spring-steel-sheet?variant=40093650878549",
+    "capturedAt": "2026-11-22T00:38:37.753Z"
+  },
+  "00000042444756": {
+    "gtin": "00000042444756",
+    "partId": "hotbed",
+    "store": "West3D",
+    "title": "Magnetic Flex Plate Flexible Build Surface with PEI Double-Sided and Single-Sided",
+    "url": "https://west3d.com/products/double-sided-texture-smooth-flex-plate-with-3m-magnetic-backing-energetic-west3d-collab?variant=43173742444756",
+    "capturedAt": "2026-11-22T00:38:37.708Z"
+  },
+  "00000066066132": {
+    "gtin": "00000066066132",
+    "partId": "hotbed",
+    "store": "West3D",
+    "title": "Magnetic Flex Plate Flexible Build Surface with PEI Double-Sided and Single-Sided",
+    "url": "https://west3d.com/products/double-sided-texture-smooth-flex-plate-with-3m-magnetic-backing-energetic-west3d-collab?variant=41975466066132",
+    "capturedAt": "2026-11-22T00:38:37.708Z"
+  },
+  "00000093132244": {
+    "gtin": "00000093132244",
+    "partId": "leveling",
+    "store": "West3D",
+    "title": "E3D Revo Voron PZ Probe - Piezo Bed Leveling Probe for Revo Voron Hotend",
+    "url": "https://west3d.com/products/e3d-revo-voron-pz-probe-bed-leveling-probe-for-revo-voron-hotend?variant=45575593132244",
+    "capturedAt": "2026-11-22T00:38:38.060Z"
+  },
+  "06975415150517": {
+    "gtin": "06975415150517",
+    "partId": "mainboard",
+    "store": "Fabreeko",
+    "title": "Hart K Stealthburner toolhead board (single and 2 piece)",
+    "url": "https://www.fabreeko.com/products/hartk-stealthburner-toolhead-board?variant=44089414779135",
+    "capturedAt": "2026-11-22T00:38:38.394Z"
+  },
+  "00000081697748": {
+    "gtin": "00000081697748",
+    "partId": "lcd",
+    "store": "West3D",
+    "title": "BTT HDMI 5 Screen - 5-inch Touch Screen for 3D Printers (BigTreeTech)",
+    "url": "https://west3d.com/products/btt-hdmi-5-screen-5-inch-touch-screen-for-3d-printers-bigtreetech?variant=45491781697748",
+    "capturedAt": "2026-11-22T00:38:38.705Z"
+  },
+  "00016627561770": {
+    "gtin": "00016627561770",
+    "partId": "lcd",
+    "store": "Printed Solid",
+    "title": "Original Prusa LCD MK3S+ (with cables)",
+    "url": "https://printedsolid.com/products/original-prusa-lcd-mk3s-with-cables?variant=40118619308117",
+    "capturedAt": "2026-11-22T00:38:38.791Z"
+  },
+  "00016627562296": {
+    "gtin": "00016627562296",
+    "partId": "lcd",
+    "store": "Printed Solid",
+    "title": "Original Prusa LCD panel orange (assembly) - MINI",
+    "url": "https://printedsolid.com/products/original-prusa-lcd-panel-orange-assembly-mini?variant=40118619275349",
+    "capturedAt": "2026-11-22T00:38:38.791Z"
+  },
+  "00000029393350": {
+    "gtin": "00000029393350",
+    "partId": "lcd",
+    "store": "Fabreeko",
+    "title": "LDO VORON V0 DISPLAY",
+    "url": "https://www.fabreeko.com/products/ldo-voron-v0-display?variant=39727929393350",
+    "capturedAt": "2026-11-22T00:38:38.823Z"
+  },
+  "06975415155222": {
+    "gtin": "06975415155222",
+    "partId": "psu",
+    "store": "West3D",
+    "title": "LDO LCP300-24D5 300W 24V and 5V Compact Power Supply (PSU)",
+    "url": "https://west3d.com/products/ldo-lcp300-24d5-compact-power-supply-psu?variant=46999658660052",
+    "capturedAt": "2026-11-22T00:38:39.045Z"
+  },
+  "00016627563507": {
+    "gtin": "00016627563507",
+    "partId": "psu",
+    "store": "Printed Solid",
+    "title": "Original Prusa PSU 24V 240W (assembly)",
+    "url": "https://printedsolid.com/products/original-prusa-psu-24v-240w-assembly?variant=40118619177045",
+    "capturedAt": "2026-11-22T00:38:39.122Z"
+  },
+  "00016627563491": {
+    "gtin": "00016627563491",
+    "partId": "psu",
+    "store": "Printed Solid",
+    "title": "Original Prusa PSU 24V 240W",
+    "url": "https://printedsolid.com/products/original-prusa-psu-24v-240w?variant=40540544729173",
+    "capturedAt": "2026-11-22T00:38:39.122Z"
+  },
+  "00000040842196": {
+    "gtin": "00000040842196",
+    "partId": "belts",
+    "store": "West3D",
+    "title": "GATES GT2 Open Belt LL-2GT-9 (9mm wide) Reinforced  (RF)",
+    "url": "https://west3d.com/products/gates-gt2-open-belt-ll-2gt-9-9mm-wide-voron-v0-v1-v2-switchwire?variant=41956540842196",
+    "capturedAt": "2026-11-22T00:38:39.353Z"
+  },
+  "00016627554659": {
+    "gtin": "00016627554659",
+    "partId": "belts",
+    "store": "Printed Solid",
+    "title": "LDO 2GT 20T Idler with 5mm bore for 6mm belt (EOL)",
+    "url": "https://printedsolid.com/products/ldo-2gt-20t-idler-with-5mm-bore-for-6mm-belt?variant=21806468071509",
+    "capturedAt": "2026-11-22T00:38:39.429Z"
+  },
+  "00016627552655": {
+    "gtin": "00016627552655",
+    "partId": "belts",
+    "store": "Printed Solid",
+    "title": "Gates Powergrip® *2GT* High Temp Belt 1M",
+    "url": "https://printedsolid.com/products/gates-powergrip-2gt-high-temp-belt-1m?variant=23283785400405",
+    "capturedAt": "2026-11-22T00:38:39.429Z"
+  },
+  "00000062728447": {
+    "gtin": "00000062728447",
+    "partId": "belts",
+    "store": "Fabreeko",
+    "title": "GATES GT2 Open Belt LL-2GT-6/9 reinforced and High temp",
+    "url": "https://www.fabreeko.com/products/gates-gt2-open-belt-ll-2gt-6-9-12-reinforced?variant=42466462728447",
+    "capturedAt": "2026-11-22T00:38:39.377Z"
+  },
+  "00000062761215": {
+    "gtin": "00000062761215",
+    "partId": "belts",
+    "store": "Fabreeko",
+    "title": "GATES GT2 Open Belt LL-2GT-6/9 reinforced and High temp",
+    "url": "https://www.fabreeko.com/products/gates-gt2-open-belt-ll-2gt-6-9-12-reinforced?variant=42466462761215",
+    "capturedAt": "2026-11-22T00:38:39.377Z"
+  },
+  "00000051459796": {
+    "gtin": "00000051459796",
+    "partId": "pulleys",
+    "store": "West3D",
+    "title": "Black Pulleys and Idlers (GT2 20T, GT2 16T)",
+    "url": "https://west3d.com/products/black-pulleys-and-idlers-gt2-20t-gt2-16t?variant=42151451459796",
+    "capturedAt": "2026-11-22T00:38:39.635Z"
+  },
+  "00000051492564": {
+    "gtin": "00000051492564",
+    "partId": "pulleys",
+    "store": "West3D",
+    "title": "Black Pulleys and Idlers (GT2 20T, GT2 16T)",
+    "url": "https://west3d.com/products/black-pulleys-and-idlers-gt2-20t-gt2-16t?variant=42151451492564",
+    "capturedAt": "2026-11-22T00:38:39.635Z"
+  },
+  "00000084927231": {
+    "gtin": "00000084927231",
+    "partId": "pulleys",
+    "store": "Fabreeko",
+    "title": "2MGT 5 mm bore toothed pulleys & idlers by Fabreeko",
+    "url": "https://www.fabreeko.com/products/2mgt-toothed-pulleys-idlers-by-fabreeko?variant=44310284927231",
+    "capturedAt": "2026-11-22T00:38:39.628Z"
+  },
+  "00016627554680": {
+    "gtin": "00016627554680",
+    "partId": "pulleys",
+    "store": "Printed Solid",
+    "title": "LDO 2GT Pulley with 5mm bore (EOL)",
+    "url": "https://printedsolid.com/products/ldo-2gt-pulley-with-5mm-bore?variant=21308351807573",
+    "capturedAt": "2026-11-22T00:38:39.716Z"
+  },
+  "06975337031291": {
+    "gtin": "06975337031291",
+    "partId": "wheels",
+    "store": "DigitMakers",
+    "title": "Bambu Lab AMS Active Extrusion Wheel Assembly",
+    "url": "https://www.digitmakers.ca/products/bambu-lab-ams-active-extrusion-wheel-assembly?variant=45679758573798",
+    "capturedAt": "2026-11-22T00:38:39.961Z"
+  },
+  "06975415155147": {
+    "gtin": "06975415155147",
+    "partId": "wheels",
+    "store": "Fabreeko",
+    "title": "LDO CNC all wheel drive kit for Voron v2.4 and Trident",
+    "url": "https://www.fabreeko.com/products/ldo-cnc-all-wheel-drive-kit-for-voron-v2-4-and-trident?variant=47217764761855",
+    "capturedAt": "2026-11-22T00:38:39.978Z"
+  },
+  "06975415155154": {
+    "gtin": "06975415155154",
+    "partId": "wheels",
+    "store": "Fabreeko",
+    "title": "LDO CNC all wheel drive kit for Voron v2.4 and Trident",
+    "url": "https://www.fabreeko.com/products/ldo-cnc-all-wheel-drive-kit-for-voron-v2-4-and-trident?variant=47217764729087",
+    "capturedAt": "2026-11-22T00:38:39.978Z"
+  },
+  "06937285507563": {
+    "gtin": "06937285507563",
+    "partId": "z-axis",
+    "store": "DigitMakers",
+    "title": "Bambu Lab Z-axis Leadscrew Kit -P2S",
+    "url": "https://www.digitmakers.ca/products/bambu-lab-z-axis-leadscrew-kit?variant=47747165159654",
+    "capturedAt": "2026-11-22T00:38:40.212Z"
+  },
+  "00000010000335": {
+    "gtin": "00000010000335",
+    "partId": "frame",
+    "store": "DigitMakers",
+    "title": "2020 Aluminum Corner Bracket L Shape Hidden",
+    "url": "https://www.digitmakers.ca/products/2020-aluminum-corner-bracket-l-shape-90-degree-hidden?variant=9664825884708",
+    "capturedAt": "2026-11-22T00:38:40.512Z"
+  },
+  "00000083385087": {
+    "gtin": "00000083385087",
+    "partId": "frame",
+    "store": "Fabreeko",
+    "title": "2020 Extrusion L & T plates",
+    "url": "https://www.fabreeko.com/products/2020-extrusion-l-t-plates?variant=43799083385087",
+    "capturedAt": "2026-11-22T00:38:40.558Z"
+  },
+  "00016627555441": {
+    "gtin": "00016627555441",
+    "partId": "frame",
+    "store": "Printed Solid",
+    "title": "V-Rail Extrusion 2020 and 2040 (EOL)",
+    "url": "https://printedsolid.com/products/v-slot-extrusion?variant=22400606404693",
+    "capturedAt": "2026-11-22T00:38:40.622Z"
+  },
+  "00016627555458": {
+    "gtin": "00016627555458",
+    "partId": "frame",
+    "store": "Printed Solid",
+    "title": "V-Rail Extrusion 2020 and 2040 (EOL)",
+    "url": "https://printedsolid.com/products/v-slot-extrusion?variant=22400606535765",
+    "capturedAt": "2026-11-22T00:38:40.622Z"
+  },
+  "00769407528240": {
+    "gtin": "00769407528240",
+    "partId": "carriages",
+    "store": "Micro Swiss",
+    "title": "Microswiss NG™ Direct Drive Extruder Adaptation Plate for Creality CR-10 / Ender 3 Printers (Linear Rail Edition)",
+    "url": "https://store.micro-swiss.com/products/micro-swiss-ng-direct-drive-extruder-adaptation-plate-for-creality-cr-10-ender-3-printers-linear-rail-edition?variant=40271645507651",
+    "capturedAt": "2026-11-22T00:38:41.241Z"
+  },
+  "07350011412426": {
+    "gtin": "07350011412426",
+    "partId": "carriages",
+    "store": "DigitMakers",
+    "title": "BondTech Creality CR-10/Ender3 Kit Without Mount",
+    "url": "https://www.digitmakers.ca/products/bondtech-extruder-creality-cr-10-ender3-kit-without-mount?variant=43667830112486",
+    "capturedAt": "2026-11-22T00:38:41.178Z"
+  },
+  "00850041631271": {
+    "gtin": "00850041631271",
+    "partId": "carriages",
+    "store": "Micro Swiss",
+    "title": "Microswiss NG™ Direct Drive Extruder for Creality Ender 3 Max Neo",
+    "url": "https://store.micro-swiss.com/products/micro-swiss-ng-direct-drive-extruder-for-creality-ender-3-max-neo?variant=40687923298371",
+    "capturedAt": "2026-11-22T00:38:41.241Z"
+  }
+}

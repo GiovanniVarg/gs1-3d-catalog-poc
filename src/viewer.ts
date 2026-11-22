@@ -3,7 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { parts } from './catalog'
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js'
+import { matchesStepName, parts } from './catalog'
 
 type ModelMesh = THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>
 
@@ -14,7 +15,6 @@ type Appearance = {
   opacity: number
   transparent: boolean
   depthWrite: boolean
-  transmission: number
 }
 
 type Assembly = {
@@ -24,10 +24,39 @@ type Assembly = {
   materials: Map<THREE.Material, Appearance>
 }
 
-const bodyId = 'body'
 const hintBlue = new THREE.Color('#387cf5')
 const selectedBlue = new THREE.Color('#5695ff')
-const cameraDirection = new THREE.Vector3(1.0, .62, 1.27).normalize()
+const cameraDirection = new THREE.Vector3(-.88, .7, -1.35).normalize()
+
+// Visual finishes for the monochrome CAD. These are illustrative, not BOM specifications.
+const finishes = {
+  aluminum: new THREE.MeshStandardMaterial({ color: '#aab3ba', metalness: .78, roughness: .32 }),
+  anodized: new THREE.MeshStandardMaterial({ color: '#282e35', metalness: .55, roughness: .46 }),
+  steel: new THREE.MeshStandardMaterial({ color: '#858a90', metalness: .84, roughness: .29 }),
+  plastic: new THREE.MeshStandardMaterial({ color: '#23262b', roughness: .67 }),
+  bed: new THREE.MeshStandardMaterial({ color: '#24272a', roughness: .83 }),
+  brass: new THREE.MeshStandardMaterial({ color: '#be913e', metalness: .68, roughness: .37 }),
+  board: new THREE.MeshStandardMaterial({ color: '#17375c', roughness: .56 }),
+  screen: new THREE.MeshStandardMaterial({ color: '#284659', metalness: .18, roughness: .3 }),
+  tube: new THREE.MeshStandardMaterial({ color: '#e8e8e3', roughness: .65 }),
+}
+
+function finishFor(id: string, stepName: string, meshName: string) {
+  if (id === 'frame') return stepName.endsWith('profile') ? finishes.aluminum : finishes.plastic
+  if (id === 'psu' && stepName === '24V15A power supply') return finishes.aluminum
+  if (stepName === 'Hot bed') return finishes.bed
+  if (stepName === 'Control panel') return finishes.board
+  if (stepName === 'lcd') return meshName.endsWith('521') ? finishes.screen : finishes.board
+  if (id === 'hotend') {
+    // GLB child names end in the source mesh indices of the nozzle and tube.
+    if (meshName.endsWith('652')) return finishes.brass
+    if (meshName.endsWith('658')) return finishes.tube
+    return finishes.aluminum
+  }
+  if (['fasteners', 'pulleys', 'z-axis'].includes(id) || /spring|spacers|eccentric|pillow/i.test(stepName)) return finishes.steel
+  if (['belts', 'wheels', 'limit-switches'].includes(id) || /fan|knob|switch/i.test(stepName)) return finishes.plastic
+  return finishes.anodized
+}
 
 function groundShadow() {
   const source = document.createElement('canvas')
@@ -42,7 +71,7 @@ function groundShadow() {
   context.fillRect(0, 0, 128, 128)
   const texture = new THREE.CanvasTexture(source)
   texture.colorSpace = THREE.SRGBColorSpace
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 6.5), new THREE.MeshBasicMaterial({
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 6.2), new THREE.MeshBasicMaterial({
     map: texture, transparent: true, depthWrite: false,
   }))
   shadow.rotation.x = -Math.PI / 2
@@ -83,7 +112,6 @@ export class Viewer {
     this.renderer.setPixelRatio(Math.min(2, devicePixelRatio))
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.2
-    this.renderer.transmissionResolutionScale = .5
     this.renderer.setClearColor(0x000000, 0)
 
     const environment = new RoomEnvironment()
@@ -114,7 +142,7 @@ export class Viewer {
 
   async load(onProgress: (fraction: number) => void) {
     const asset = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-      .loadAsync('/models/car-concept.glb', event => {
+      .loadAsync('/models/ender3.glb', event => {
         if (event.lengthComputable) onProgress(event.loaded / event.total)
       })
     asset.scene.updateMatrixWorld(true)
@@ -125,21 +153,27 @@ export class Viewer {
     const normalizer = new THREE.Matrix4().makeScale(scale, scale, scale)
       .setPosition(-sourceCenter.x * scale, -originalBounds.min.y * scale, -sourceCenter.z * scale)
 
+    const creased = new Map<THREE.BufferGeometry, THREE.BufferGeometry>()
     asset.scene.traverse(object => {
       const mesh = object as ModelMesh
       if (!mesh.isMesh) return
-      let id = bodyId
-      for (let node: THREE.Object3D | null = mesh; node; node = node.parent) {
-        const part = parts.find(entry => entry.nodes.test(node.name))
-        if (part) {
-          id = part.id
-          break
-        }
-      }
+      let occurrence: THREE.Object3D | null = mesh
+      while (occurrence && typeof occurrence.userData.stepName !== 'string') occurrence = occurrence.parent
+      const stepName = occurrence?.userData.stepName
+      const matching = parts.filter(part => typeof stepName === 'string' && matchesStepName(part, stepName))
+      if (matching.length !== 1) throw new Error(`Invalid CAD tag for ${mesh.name}`)
+      const { id } = matching[0]
+
       const assembly = this.getAssembly(id)
       const clone = mesh.clone(false)
       normalizer.clone().multiply(mesh.matrixWorld).decompose(clone.position, clone.quaternion, clone.scale)
-      clone.material = this.cloneMaterial(mesh.material, assembly)
+      let geometry = creased.get(mesh.geometry)
+      if (!geometry) {
+        geometry = toCreasedNormals(mesh.geometry, Math.PI / 6)
+        creased.set(mesh.geometry, geometry)
+      }
+      clone.geometry = geometry
+      clone.material = this.cloneMaterial(finishFor(id, stepName, mesh.name), assembly)
       assembly.group.add(clone)
       this.meshes.push(clone)
       this.meshIds.set(clone, id)
@@ -147,17 +181,10 @@ export class Viewer {
 
     this.bounds.setFromObject(this.model)
     const center = this.bounds.getCenter(new THREE.Vector3())
-    for (const [id, assembly] of this.assemblies) {
+    for (const assembly of this.assemblies.values()) {
       assembly.bounds.setFromObject(assembly.group)
-      if (id === bodyId) continue
-      const configured = parts.find(part => part.id === id)?.explode
-      if (configured) {
-        assembly.offset.set(...configured)
-      } else {
-        const direction = assembly.bounds.getCenter(new THREE.Vector3()).sub(center)
-        direction.y = .16
-        assembly.offset.copy(direction.normalize().multiplyScalar(1.15))
-      }
+      const direction = assembly.bounds.getCenter(new THREE.Vector3()).sub(center).normalize()
+      assembly.offset.copy(direction.multiplyScalar(1.15))
     }
 
     this.ready = true
@@ -186,7 +213,6 @@ export class Viewer {
     assembly.materials.set(original, {
       material, emissive: material.emissive.clone(), intensity: material.emissiveIntensity,
       opacity: material.opacity, transparent: material.transparent, depthWrite: material.depthWrite,
-      transmission: material instanceof THREE.MeshPhysicalMaterial ? material.transmission : 0,
     })
     return material
   }
@@ -219,9 +245,7 @@ export class Viewer {
       const selected = id === this.selectedId
       const hovered = id === this.hoveredId
       const faded = this.ghost && this.selectedId !== null && !selected
-      for (const { material, emissive, intensity, opacity, transparent, depthWrite, transmission } of assembly.materials.values()) {
-        // Turn off the separate transmission pass for ghosted glass so it fades with the rest of the car.
-        if (material instanceof THREE.MeshPhysicalMaterial) material.transmission = faded ? 0 : transmission
+      for (const { material, emissive, intensity, opacity, transparent, depthWrite } of assembly.materials.values()) {
         const nextTransparent = faded || transparent
         if (nextTransparent !== material.transparent) material.needsUpdate = true
         material.transparent = nextTransparent
@@ -287,8 +311,11 @@ export class Viewer {
     if (part) {
       const bounds = part.bounds.clone().translate(part.offset.clone().multiplyScalar(this.spreadTo))
       const partCenter = bounds.getCenter(new THREE.Vector3())
-      target = center.clone().lerp(partCenter, narrow ? .65 : .8)
-      distance = Math.max(this.viewDistance(bounds, target, direction) * 1.28, homeDistance * (narrow ? .87 : .75), 2)
+      target = center.clone().lerp(partCenter, narrow ? .24 : .43)
+      distance = Math.max(
+        this.viewDistance(bounds, target, direction) * 1.28,
+        this.viewDistance(home, target, direction) * (narrow ? 1.14 : 1.11),
+      )
     }
     const position = target.clone().addScaledVector(direction, Math.min(distance, this.controls.maxDistance))
     if (animate && !this.reducedMotion.matches) {
@@ -340,8 +367,7 @@ export class Viewer {
     this.camera.updateMatrixWorld()
     this.raycaster.setFromCamera(point, this.camera)
     const closest = this.raycaster.intersectObjects(this.meshes, false)[0]
-    const id = closest && this.meshIds.get(closest.object)
-    return id && id !== bodyId ? id : null
+    return closest ? this.meshIds.get(closest.object) ?? null : null
   }
 
   projectPart(id: string) {
@@ -363,7 +389,7 @@ export class Viewer {
     const right = Math.min(rect.right, Math.max(...corners.map(point => point.x)))
     const top = Math.max(rect.top, Math.min(...corners.map(point => point.y)))
     const bottom = Math.min(rect.bottom, Math.max(...corners.map(point => point.y)))
-    if (left >= right || top >= bottom) return center
+    if (left >= right || top >= bottom) return null
     const steps = [.5, .375, .625, .25, .75, .125, .875]
     for (const row of steps) {
       for (const column of steps) {
@@ -371,7 +397,7 @@ export class Viewer {
         if (this.pick(point.x, point.y) === id) return point
       }
     }
-    return center
+    return null
   }
 
   private bindPointers() {

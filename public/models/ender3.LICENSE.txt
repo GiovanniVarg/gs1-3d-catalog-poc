@@ -1,0 +1,12 @@
+3D model: Creality Ender-3 CAD by Shenzhen Creality 3D Technology Co., Ltd.,
+GPL-3.0, https://github.com/Creality3DPrinting/Ender-3 .
+Converted to glTF and simplified by Mainstay. The converted model is
+distributed under GPL-3.0.
+
+The upstream repository contains the original STEP source. The conversion
+scripts are in this project's scripts/ directory.
+
+GNU General Public License, version 3:
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+Not affiliated with or endorsed by Creality or GS1 US.

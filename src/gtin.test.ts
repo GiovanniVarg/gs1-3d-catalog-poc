@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { parts } from './catalog'
 import { gtinCheckDigit, isValidGtin, parseDigitalLink } from './gtin'
 
 describe('GS1 check digits', () => {
   it('computes check digits with alternating weights from the right', () => {
-    expect(gtinCheckDigit('0061414100001')).toBe(2)
     expect(gtinCheckDigit('03600029145')).toBe(2)
     expect(gtinCheckDigit('1234567')).toBe(0)
   })
@@ -19,10 +17,6 @@ describe('GS1 check digits', () => {
     expect(() => gtinCheckDigit('123?')).toThrow(TypeError)
   })
 
-  it('generates unique valid example GTINs for every part', () => {
-    expect(new Set(parts.map(part => part.gtin)).size).toBe(parts.length)
-    expect(parts.every(part => part.gtin.startsWith('00614141') && isValidGtin(part.gtin))).toBe(true)
-  })
 })
 
 describe('Digital Link routes', () => {
@@ -34,14 +28,14 @@ describe('Digital Link routes', () => {
     expect(parseDigitalLink('/01/12345670/10/demo%20lot/21/123?linkType=info')).toEqual({
       kind: 'part', gtin: '00000012345670',
     })
-    expect(parseDigitalLink('https://example.com/01/00614141000012/')).toEqual({
-      kind: 'part', gtin: '00614141000012',
+    expect(parseDigitalLink('https://catalog.invalid/01/036000291452/')).toEqual({
+      kind: 'part', gtin: '00036000291452',
     })
   })
 
   it('distinguishes invalid links from catalog routes', () => {
     expect(parseDigitalLink('/01/%FF')).toEqual({ kind: 'invalid', value: '%FF' })
-    expect(parseDigitalLink('/01/00614141000013')).toEqual({ kind: 'invalid', value: '00614141000013' })
+    expect(parseDigitalLink('/01/036000291453')).toEqual({ kind: 'invalid', value: '036000291453' })
     expect(parseDigitalLink('/01/')).toEqual({ kind: 'invalid', value: '' })
     expect(parseDigitalLink('/')).toEqual({ kind: 'catalog' })
   })

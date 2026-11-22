@@ -1,7 +1,5 @@
-import arrowRight from 'lucide-static/icons/arrow-right.svg?raw'
 import arrowUpRight from 'lucide-static/icons/arrow-up-right.svg?raw'
 import box from 'lucide-static/icons/box.svg?raw'
-import car from 'lucide-static/icons/car-front.svg?raw'
 import check from 'lucide-static/icons/check.svg?raw'
 import chevronDown from 'lucide-static/icons/chevron-down.svg?raw'
 import chevronRight from 'lucide-static/icons/chevron-right.svg?raw'
@@ -13,15 +11,12 @@ import info from 'lucide-static/icons/info.svg?raw'
 import layers from 'lucide-static/icons/layers.svg?raw'
 import lightbulb from 'lucide-static/icons/lightbulb.svg?raw'
 import list from 'lucide-static/icons/list.svg?raw'
-import mapPin from 'lucide-static/icons/map-pin.svg?raw'
 import mouse from 'lucide-static/icons/mouse.svg?raw'
 import qr from 'lucide-static/icons/qr-code.svg?raw'
 import rotate from 'lucide-static/icons/rotate-ccw.svg?raw'
 import search from 'lucide-static/icons/search.svg?raw'
 import settings from 'lucide-static/icons/settings.svg?raw'
-import shopping from 'lucide-static/icons/shopping-bag.svg?raw'
-import target from 'lucide-static/icons/scan-line.svg?raw'
 import x from 'lucide-static/icons/x.svg?raw'
 
-export { arrowRight, arrowUpRight, box, car, check, chevronDown, chevronRight, circleDot, copy,
-  crosshair, eye, info, layers, lightbulb, list, mapPin, mouse, qr, rotate, search, settings, shopping, target, x }
+export { arrowUpRight, box, check, chevronDown, chevronRight, circleDot, copy, crosshair,
+  eye, info, layers, lightbulb, list, mouse, qr, rotate, search, settings, x }

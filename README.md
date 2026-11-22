@@ -1,6 +1,6 @@
-# Parts Catalog 3D
+# Creality Ender-3 · Parts Catalog 3D
 
-A static proof of concept for exploring a concept car, identifying a component, and seeing its specifications and example sellers. Open a part by selecting it on the model, searching the catalog, or scanning its GS1 Digital Link QR code. Exploded view and part fading help expose interior components.
+Explore the original Creality Ender-3 in 3D. Select an assembly on the printer or in the catalog to inspect its published BOM lines, browse live retailer results, and share its part link. Explode and fade controls expose hidden components.
 
 ## Run locally
 
@@ -9,7 +9,15 @@ npm ci
 npm run dev
 ```
 
-Use Node.js 22.12 or later. Drag to orbit and scroll or pinch to zoom. Search by name, part number, GTIN, or category. Press `/` to focus search and `Esc` to clear the selection. On a phone, tap **Parts** to open search. Tap the handle or swipe up on a part's bottom sheet to expand it.
+Use Node.js 22.12 or later. Drag to orbit and scroll or pinch to zoom. Search by name, Creality part code, specification, or category. Press `/` to focus search and `Esc` to close the selection. On a phone, tap **Parts** to open the list and use the handle or swipe the part sheet to expand it.
+
+## Data sources
+
+- **BOM and CAD.** Catalog groups are hand-tagged to STEP occurrence names in the model. Part codes, names, specifications and quantities are transcribed from the [published Ender-3 BOM](https://github.com/Creality3DPrinting/Ender-3/blob/master/Ender-3%20Mechanical/Ender-3%20BOM.XLS) with the source CSV in [data/ender3-bom.csv](data/ender3-bom.csv). Model finishes are illustrative.
+- **Live offers.** `/api/offers?part=hotend` searches the public Shopify storefronts of Printed Solid, Micro Swiss, E3D, Fabreeko, West3D, 3D Printing Canada, and DigitMakers. Variant prices, currencies, stock, SKUs, and barcodes come from each retailer. Prices use the currency returned by its cart endpoint. Pricing and inventory may change. Compatibility with the original Ender-3 is unverified.
+- **Identifiers.** `/part/hotend` is an app link. Creality has no published GTIN for this catalog's parts. Seller-listed barcodes with valid check digits are eligible for the demo's GS1 Digital Link URLs. Check digit validation confirms the number's format only. `/01/<gtin>` resolves through the checked-in snapshot and opens live offers for the captured part. The snapshot stores retailer provenance and capture time. Refresh the snapshot with `node scripts/snapshot-gtins.mjs` and rebuild. `/api/gtin?gtin=<digits>` can look up item facts in the rate-limited [UPCitemdb trial API](https://www.upcitemdb.com/api/explorer).
+
+The Shopify and UPCitemdb requests need no API keys. Additional integrations could use eBay Browse API with eBay developer application keys or the Best Buy API with a Best Buy API key. BrickLink coverage is not applicable to printer parts.
 
 ## Build and verify
 
@@ -19,14 +27,14 @@ npm test
 npm run verify
 ```
 
-The build outputs `dist/`. For static hosting, serve existing files directly and fall back to `index.html` for app routes. The included Vercel configuration supplies the SPA rewrite. The verifier starts Vite preview and requires system Chrome at `/usr/bin/google-chrome`. It exercises the production app and saves desktop and emulated iPhone screenshots in `shots/`.
+Build outputs go to `dist/`. The Vite dev and preview servers mount the same API handlers used by the Vercel Node functions. The Vercel rewrite serves catalog deep links through the SPA.
 
-The sample hood link is `/01/00614141000012`. The app accepts optional path qualifiers and ignores `linkType` query parameters. GTIN-8, GTIN-12, and GTIN-13 identifiers are validated and left-padded to 14 digits for lookup.
+Verification launches Chrome at `/usr/bin/google-chrome` with SwiftShader against Vite preview. It requires real network access to the retailer endpoints and fails if no hotend results are returned. It checks desktop and emulated iPhone interactions and writes `real-desktop.png`, `real-phone.png`, `real-phone-home.png`, and `real-phone-buy.png` in `shots/`.
 
-## Sample data and credits
+## Credits
 
-All parts data, prices, inventory, and seller listings are fictional examples. Sample GTINs use the GS1 example prefix `0614141` and do not represent registered products. Seller links point to the reserved domain `example.com`.
+3D model: [Creality Ender-3 CAD](https://github.com/Creality3DPrinting/Ender-3) by Shenzhen Creality 3D Technology Co., Ltd., GPL-3.0. Converted to glTF and simplified by Mainstay. The converted model is distributed under GPL-3.0. See the [model license notice](public/models/ender3.LICENSE.txt) and the conversion scripts in `scripts/`.
 
-3D model: [CarConcept by Eric Chadwick, Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model and textures are credited to Eric Chadwick of Darmstadt Graphics Group GmbH. The steering-wheel emblem and Khronos logo are Khronos trademarks. See the [model license metadata](public/models/car-concept.LICENSE.json).
+The Sunrise 2027 explainer and 2025 survey figures are sourced from [GS1 US Sunrise 2027](https://www.gs1us.org/industries-and-insights/by-topic/sunrise-2027).
 
-The Sunrise 2027 explainer and 2025 survey figures are sourced from [GS1 US Sunrise 2027](https://www.gs1us.org/industries-and-insights/by-topic/sunrise-2027). Independent proof of concept. Not affiliated with or endorsed by GS1 US.
+Live retailer data, fetched on demand. Not affiliated with or endorsed by Creality or GS1 US.

@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { mkdir, stat } from 'node:fs/promises'
+import { mkdir, readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { once } from 'node:events'
 import { setTimeout as delay } from 'node:timers/promises'
 import puppeteer, { KnownDevices } from 'puppeteer-core'
 
-const hoodGtin = '00614141000012'
-const hoodRoute = '/01/' + hoodGtin
+const snapshot = JSON.parse(await readFile(new URL('../src/gtin-snapshot.json', import.meta.url)))
+const sample = Object.values(snapshot).find(row => row.partId === 'hotend') ?? Object.values(snapshot)[0]
+assert.ok(sample, 'Expected at least one real seller-listed GTIN in the snapshot')
 
 async function availablePort() {
   const socket = createServer()
@@ -50,13 +51,7 @@ async function open(page, path, expected = null) {
   assert.equal(await page.$eval('#loading', el => el.hidden), true)
 }
 
-async function readyShot(page, path, qr = false) {
-  if (qr) {
-    await page.waitForFunction(() => {
-      const canvas = document.querySelector('[data-qr]')
-      return canvas?.getContext('2d').getImageData(0, 0, 1, 1).data[3] === 255
-    })
-  }
+async function readyShot(page, path) {
   await page.evaluate(() => document.fonts.ready.then(() => undefined))
   await delay(700)
   await page.screenshot({ path })
@@ -69,10 +64,24 @@ function watchErrors(page) {
   })
 }
 
-async function assertHood(page) {
-  await page.waitForFunction(() => window.__catalog.selectedId === 'hood')
-  assert.equal(await page.$eval('#detail-title', node => node.textContent), 'Hood assembly')
-  assert.equal(await page.$eval('#detail', node => node.getBoundingClientRect().height > 0), true)
+async function liveListings(page, activate = true) {
+  const part = await page.evaluate(() => window.__catalog.selectedId)
+  const requested = page.waitForResponse(response => new URL(response.url()).pathname === '/api/offers'
+    && new URL(response.url()).searchParams.get('part') === part, { timeout: 15000 })
+  if (activate) await page.click('#tab-sellers')
+  const response = await requested
+  assert.equal(response.status(), 200, `Offers API failed for ${part}`)
+  const data = await response.json()
+  assert.equal(data.part, part)
+  assert.equal(data.sources.length, 7)
+  assert.ok(data.sources.some(source => source.ok), `All retailers failed for ${part}: ${JSON.stringify(data.sources)}`)
+  assert.ok(data.listings.length, `No live retailer listings for ${part}: ${JSON.stringify(data.sources)}`)
+  assert.ok(data.listings.some(listing => listing.price !== null && listing.currency), 'No listings with a live price and currency')
+  assert.ok(data.listings.every(listing => new URL(listing.url).hostname === listing.host))
+  await page.waitForSelector('.seller-title', { visible: true })
+  assert.equal(await page.$$eval('.seller-title', rows => rows.length), data.listings.length)
+  await page.waitForSelector('.source-list')
+  return data
 }
 
 async function partPoint(page, id) {
@@ -93,84 +102,86 @@ try {
   const desktop = await browser.newPage()
   watchErrors(desktop)
   await desktop.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 })
-  await open(desktop, '/')
-  assert.equal(await desktop.$$eval('.part-row', rows => rows.length), 18)
-  for (const part of await desktop.$$eval('[data-part]', rows => rows.map(row => row.dataset.part))) {
-    assert.ok(await desktop.evaluate(id => window.__catalog.projectPart(id) !== null, part), `Missing geometry for ${part}`)
+  await open(desktop, '/part/hotend', 'hotend')
+  assert.equal(await desktop.$eval('#detail-title', node => node.textContent), 'Hotend')
+  assert.equal(await desktop.$$eval('.part-row', rows => rows.length), 17)
+  assert.ok(await desktop.$eval('.bom-table', table => table.textContent.includes('400106003')))
+  await desktop.click('#explode')
+  assert.equal(await desktop.evaluate(() => window.__catalog.exploded), true)
+  await desktop.click('#explode')
+  await desktop.click('#ghost')
+  assert.equal(await desktop.$eval('#ghost', node => node.getAttribute('aria-pressed')), 'false')
+  await desktop.click('#ghost')
+  await desktop.click('#tab-link')
+  await desktop.waitForFunction(() => {
+    const canvas = document.querySelector('[data-qr="/part/hotend"]')
+    return canvas?.getContext('2d').getImageData(0, 0, 1, 1).data[3] === 255
+  })
+  // The Digital Link tab also loads offers. Reopen to assert the live browser request from Where to buy.
+  await open(desktop, '/part/hotend', 'hotend')
+  const hotend = await liveListings(desktop)
+  await readyShot(desktop, 'shots/real-desktop.png')
+  console.log(`✓ Desktop model, BOM, and ${hotend.listings.length} real hotend listings`)
+
+  if (hotend.listings.some(listing => listing.gtinValid)) {
+    await desktop.click('.seller [data-show-gtin]')
+    await desktop.waitForFunction(() => {
+      const canvas = document.querySelector('[data-qr^="/01/"]')
+      return canvas?.getContext('2d').getImageData(0, 0, 1, 1).data[3] === 255
+    })
+    assert.match(await desktop.$eval('.digital-card + .digital-card', node => node.textContent), /not verified with GS1/)
   }
-  console.log('✓ Catalog and all 18 model assemblies loaded')
 
-  await open(desktop, hoodRoute + '/10/sample-lot/21/demo?linkType=info', 'hood')
-  await assertHood(desktop)
-  await readyShot(desktop, 'shots/desktop.png', true)
-  console.log('✓ Digital Link selects Hood assembly and opens its details')
-
+  const link = `/01/${sample.gtin}/10/demo-lot`
+  const resolved = desktop.waitForResponse(response => new URL(response.url()).pathname === '/api/offers'
+    && new URL(response.url()).searchParams.get('part') === sample.partId, { timeout: 15000 })
+  await open(desktop, link, sample.partId)
+  assert.equal(await desktop.$eval('#tab-sellers', node => node.getAttribute('aria-selected')), 'true')
+  const resolvedOffers = await (await resolved).json()
+  if (resolvedOffers.listings.some(listing => listing.gtinValid && listing.barcode.padStart(14, '0') === sample.gtin)) {
+    await desktop.waitForSelector('[data-highlighted]', { visible: true })
+  }
   await desktop.click('[data-clear]')
   assert.equal(new URL(desktop.url()).pathname, '/')
-  await delay(700)
-  const hood = await partPoint(desktop, 'hood')
-  await desktop.mouse.click(hood.x, hood.y)
-  await assertHood(desktop)
-  assert.equal(new URL(desktop.url()).pathname, hoodRoute)
-  await desktop.goBack()
-  await desktop.waitForFunction(() => window.__catalog.selectedId === null)
-  await desktop.goForward()
-  await assertHood(desktop)
-  console.log('✓ Canvas click selects the part and browser history restores selection')
+  await desktop.goBack({ waitUntil: 'domcontentloaded' })
+  await desktop.waitForFunction(id => window.__catalog.selectedId === id, {}, sample.partId)
+  assert.equal(new URL(desktop.url()).pathname, link)
+  await open(desktop, '/01/036000291452')
+  assert.match(await desktop.$eval('#toast', node => node.textContent), /No catalog match for GTIN/)
+  console.log('✓ Captured GTIN deep link, browser history, unknown GTIN and QR labels')
 
-  await desktop.keyboard.press('/')
-  assert.equal(await desktop.evaluate(() => document.activeElement.id), 'part-search')
-  await desktop.type('#part-search', 'mcx-wfl-1007')
-  assert.equal(await desktop.$$eval('.part-row', rows => rows.length), 1)
-  await desktop.click('[data-part="front-left"]')
-  await desktop.waitForFunction(() => window.__catalog.selectedId === 'front-left')
-  await desktop.click('#tab-sellers')
-  assert.equal(await desktop.$$eval('.seller', rows => rows.every(row => new URL(row.href).hostname === 'example.com') && rows.length), 4)
-  await desktop.click('#tab-link')
-  assert.match(await desktop.$eval('.gtin-note', el => el.textContent), /Sample GTIN/)
-  await delay(700)
-  const assembled = await desktop.evaluate(() => window.__catalog.projectPart('hood'))
-  await desktop.click('#explode')
-  await desktop.waitForFunction(() => window.__catalog.exploded && document.querySelector('#explode').getAttribute('aria-pressed') === 'true')
-  await delay(850)
-  const exploded = await desktop.evaluate(() => window.__catalog.projectPart('hood'))
-  assert.ok(Math.hypot(assembled.x - exploded.x, assembled.y - exploded.y) > 14, 'Expected an exploded part to move on screen')
-  await desktop.click('#explode')
-  await desktop.waitForFunction(() => !window.__catalog.exploded)
-  console.log('✓ Search, list selection, example sellers, Digital Link tab and exploded view work')
-
-  await open(desktop, '/01/00614141000013')
-  assert.match(await desktop.$eval('#toast', el => el.textContent), /No part with GTIN 00614141000013/)
   const phone = await browser.newPage()
   watchErrors(phone)
   const device = KnownDevices['iPhone 16 Pro']
   await phone.emulate({ ...device, viewport: { ...device.viewport, width: 393, height: 852 } })
-  assert.equal(await phone.evaluate(() => devicePixelRatio), 3)
   await open(phone, '/')
-  await readyShot(phone, 'shots/phone-home.png')
-
-  const touch = await partPoint(phone, 'hood')
+  assert.deepEqual(await phone.evaluate(() => [innerWidth, innerHeight, devicePixelRatio, navigator.maxTouchPoints > 0]), [393, 852, 3, true])
+  await readyShot(phone, 'shots/real-phone-home.png')
+  const touch = await partPoint(phone, 'hotbed')
   await phone.touchscreen.tap(touch.x, touch.y)
-  await assertHood(phone)
-  assert.equal(new URL(phone.url()).pathname, hoodRoute)
+  await phone.waitForFunction(() => window.__catalog.selectedId === 'hotbed')
+  assert.equal(new URL(phone.url()).pathname, '/part/hotbed')
   const sizes = await phone.evaluate(() => ({
     detail: document.querySelector('#detail').getBoundingClientRect().height,
     stage: document.querySelector('.stage').getBoundingClientRect().height,
     view: innerHeight,
   }))
   assert.ok(sizes.detail < sizes.view * .35 && sizes.stage > sizes.detail, 'Peek sheet should leave the model visible')
-  await readyShot(phone, 'shots/phone.png')
+  await readyShot(phone, 'shots/real-phone.png')
   await phone.tap('.sheet-handle')
-  assert.equal(await phone.$eval('.sheet-handle', el => el.getAttribute('aria-expanded')), 'true')
+  assert.equal(await phone.$eval('.sheet-handle', node => node.getAttribute('aria-expanded')), 'true')
   await phone.tap('[data-clear]')
   await phone.tap('#open-parts')
   await phone.waitForSelector('.catalog-panel.list-open', { visible: true })
-  await phone.tap('[data-part="door-left"]')
-  await phone.waitForFunction(() => window.__catalog.selectedId === 'door-left')
-  assert.equal(await phone.$eval('#open-parts', el => el.getAttribute('aria-expanded')), 'false')
+  await phone.tap('[data-part="hotend"]')
+  await phone.waitForFunction(() => window.__catalog.selectedId === 'hotend')
+  assert.equal(await phone.$eval('#open-parts', node => node.getAttribute('aria-expanded')), 'false')
+  await liveListings(phone)
+  assert.equal(await phone.$eval('.sheet-handle', node => node.getAttribute('aria-expanded')), 'true')
+  await readyShot(phone, 'shots/real-phone-buy.png')
   assert.deepEqual(errors, [], 'Browser errors')
-  console.log('✓ Phone touch picking, detail sheet, and parts sheet work')
-  console.log('✓ Saved shots/desktop.png, shots/phone.png, and shots/phone-home.png')
+  console.log('✓ iPhone touchscreen picking, part URL, catalog sheet, and live offers sheet')
+  console.log('✓ Saved shots/real-desktop.png, shots/real-phone.png, shots/real-phone-home.png, and shots/real-phone-buy.png')
 } finally {
   try {
     await browser?.close()
