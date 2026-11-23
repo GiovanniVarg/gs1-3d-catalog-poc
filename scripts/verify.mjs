@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { mkdir, readFile, stat } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { once } from 'node:events'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -120,7 +120,8 @@ try {
   // The Digital Link tab also loads offers. Reopen to assert the live browser request from Where to buy.
   await open(desktop, '/part/hotend', 'hotend')
   const hotend = await liveListings(desktop)
-  await readyShot(desktop, 'shots/real-desktop.png')
+  await readyShot(desktop, 'shots/brand-desktop.png')
+  await copyFile('shots/brand-desktop.png', 'shots/real-desktop.png')
   console.log(`✓ Desktop model, BOM, and ${hotend.listings.length} real hotend listings`)
 
   if (hotend.listings.some(listing => listing.gtinValid)) {
@@ -156,7 +157,9 @@ try {
   await phone.emulate({ ...device, viewport: { ...device.viewport, width: 393, height: 852 } })
   await open(phone, '/')
   assert.deepEqual(await phone.evaluate(() => [innerWidth, innerHeight, devicePixelRatio, navigator.maxTouchPoints > 0]), [393, 852, 3, true])
-  await readyShot(phone, 'shots/real-phone-home.png')
+  assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth === innerWidth), 'Phone home must fit the viewport width')
+  await readyShot(phone, 'shots/brand-phone.png')
+  await copyFile('shots/brand-phone.png', 'shots/real-phone-home.png')
   const touch = await partPoint(phone, 'hotbed')
   await phone.touchscreen.tap(touch.x, touch.y)
   await phone.waitForFunction(() => window.__catalog.selectedId === 'hotbed')
@@ -166,7 +169,8 @@ try {
     stage: document.querySelector('.stage').getBoundingClientRect().height,
     view: innerHeight,
   }))
-  assert.ok(sizes.detail < sizes.view * .35 && sizes.stage > sizes.detail, 'Peek sheet should leave the model visible')
+  assert.ok(sizes.detail < sizes.view * .35 && sizes.stage > sizes.detail,
+    `Peek sheet should leave the model visible (${JSON.stringify(sizes)})`)
   await readyShot(phone, 'shots/real-phone.png')
   await phone.tap('.sheet-handle')
   assert.equal(await phone.$eval('.sheet-handle', node => node.getAttribute('aria-expanded')), 'true')
@@ -178,10 +182,12 @@ try {
   assert.equal(await phone.$eval('#open-parts', node => node.getAttribute('aria-expanded')), 'false')
   await liveListings(phone)
   assert.equal(await phone.$eval('.sheet-handle', node => node.getAttribute('aria-expanded')), 'true')
-  await readyShot(phone, 'shots/real-phone-buy.png')
+  assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth === innerWidth), 'Phone offer sheet must fit the viewport width')
+  await readyShot(phone, 'shots/brand-phone-part.png')
+  await copyFile('shots/brand-phone-part.png', 'shots/real-phone-buy.png')
   assert.deepEqual(errors, [], 'Browser errors')
   console.log('✓ iPhone touchscreen picking, part URL, catalog sheet, and live offers sheet')
-  console.log('✓ Saved shots/real-desktop.png, shots/real-phone.png, shots/real-phone-home.png, and shots/real-phone-buy.png')
+  console.log('✓ Saved brand-desktop.png, brand-phone.png, brand-phone-part.png, and the existing verification screenshots in shots/')
 } finally {
   try {
     await browser?.close()

@@ -10,6 +10,7 @@ type ModelMesh = THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>
 
 type Appearance = {
   material: THREE.MeshStandardMaterial
+  color: THREE.Color
   emissive: THREE.Color
   intensity: number
   opacity: number
@@ -24,8 +25,7 @@ type Assembly = {
   materials: Map<THREE.Material, Appearance>
 }
 
-const hintBlue = new THREE.Color('#387cf5')
-const selectedBlue = new THREE.Color('#5695ff')
+const signal = new THREE.Color('#5b8cff')
 const cameraDirection = new THREE.Vector3(-.88, .7, -1.35).normalize()
 
 // Visual finishes for the monochrome CAD. These are illustrative, not BOM specifications.
@@ -63,10 +63,10 @@ function groundShadow() {
   source.width = source.height = 128
   const context = source.getContext('2d')!
   const gradient = context.createRadialGradient(64, 64, 7, 64, 64, 64)
-  gradient.addColorStop(0, 'rgba(35,51,77,0.49)')
-  gradient.addColorStop(.39, 'rgba(35,51,77,0.31)')
-  gradient.addColorStop(.7, 'rgba(35,51,77,0.13)')
-  gradient.addColorStop(1, 'rgba(35,51,77,0)')
+  gradient.addColorStop(0, 'rgba(0,0,0,0.62)')
+  gradient.addColorStop(.39, 'rgba(0,0,0,0.38)')
+  gradient.addColorStop(.7, 'rgba(0,0,0,0.14)')
+  gradient.addColorStop(1, 'rgba(0,0,0,0)')
   context.fillStyle = gradient
   context.fillRect(0, 0, 128, 128)
   const texture = new THREE.CanvasTexture(source)
@@ -111,19 +111,28 @@ export class Viewer {
     this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
     this.renderer.setPixelRatio(Math.min(2, devicePixelRatio))
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 1.2
+    this.renderer.toneMappingExposure = 1.32
     this.renderer.setClearColor(0x000000, 0)
 
     const environment = new RoomEnvironment()
     const pmrem = new THREE.PMREMGenerator(this.renderer)
     this.scene.environment = pmrem.fromScene(environment, .04).texture
+    this.scene.environmentIntensity = 1.2
     environment.dispose()
     pmrem.dispose()
-    this.scene.add(this.model, groundShadow())
+    const key = new THREE.DirectionalLight(0xffffff, 1.8)
+    key.position.set(-4, 7, -5)
+    const fill = new THREE.DirectionalLight(0xffffff, .55)
+    fill.position.set(4, 4, 2)
+    this.scene.add(this.model, groundShadow(), key, fill)
 
     this.camera.position.copy(cameraDirection).multiplyScalar(9)
     this.controls = new OrbitControls(this.camera, canvas)
-    this.controls.enableDamping = true
+    this.controls.enableDamping = !this.reducedMotion.matches
+    this.reducedMotion.addEventListener('change', () => {
+      this.controls.enableDamping = !this.reducedMotion.matches
+      if (this.reducedMotion.matches && this.motion) this.focus(false)
+    })
     this.controls.dampingFactor = .11
     this.controls.minDistance = 1.1
     this.controls.maxDistance = 32
@@ -211,7 +220,7 @@ export class Viewer {
     if (found) return found.material
     const material = original.clone()
     assembly.materials.set(original, {
-      material, emissive: material.emissive.clone(), intensity: material.emissiveIntensity,
+      material, color: material.color.clone(), emissive: material.emissive.clone(), intensity: material.emissiveIntensity,
       opacity: material.opacity, transparent: material.transparent, depthWrite: material.depthWrite,
     })
     return material
@@ -245,17 +254,19 @@ export class Viewer {
       const selected = id === this.selectedId
       const hovered = id === this.hoveredId
       const faded = this.ghost && this.selectedId !== null && !selected
-      for (const { material, emissive, intensity, opacity, transparent, depthWrite } of assembly.materials.values()) {
+      for (const { material, color, emissive, intensity, opacity, transparent, depthWrite } of assembly.materials.values()) {
         const nextTransparent = faded || transparent
         if (nextTransparent !== material.transparent) material.needsUpdate = true
         material.transparent = nextTransparent
         material.depthWrite = !faded && depthWrite
-        material.opacity = faded ? (hovered ? .52 : .25) * opacity : opacity
+        material.opacity = faded ? (hovered ? .58 : .40) * opacity : opacity
+        material.color.copy(color)
+        if (selected) material.color.lerp(signal, .68)
         material.emissive.copy(emissive)
         material.emissiveIntensity = intensity
         if (selected || hovered) {
-          material.emissive.lerp(selected ? selectedBlue : hintBlue, selected ? .66 : .45)
-          material.emissiveIntensity = Math.max(intensity, selected ? .62 : .42)
+          material.emissive.lerp(signal, selected ? .78 : .35)
+          material.emissiveIntensity = Math.max(intensity, selected ? .7 : .32)
         }
       }
     }
@@ -401,6 +412,8 @@ export class Viewer {
   }
 
   private bindPointers() {
+    // Pointer events handle picks. Suppress the follow-up touch click, which can land on the newly opened sheet.
+    this.canvas.addEventListener('touchend', event => event.preventDefault(), { passive: false })
     this.canvas.addEventListener('pointerdown', event => {
       this.activePointers.add(event.pointerId)
       this.tap = this.activePointers.size === 1 && event.button === 0

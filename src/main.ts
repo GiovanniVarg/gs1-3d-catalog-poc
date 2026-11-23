@@ -1,4 +1,5 @@
-import '@fontsource-variable/inter/wght.css'
+import '@fontsource-variable/geist/wght.css'
+import '@fontsource-variable/jetbrains-mono/wght.css'
 import './style.css'
 import { bomUrl, cadUrl, categories, partPath, parts, type Category, type Part } from './catalog'
 import snapshotJson from './gtin-snapshot.json'
@@ -8,6 +9,7 @@ import * as icon from './icons'
 import type { Viewer } from './viewer'
 
 const sourceUrl = 'https://www.gs1us.org/industries-and-insights/by-topic/sunrise-2027'
+const studioCredit = '<a href="https://mainstaydigital.com">Built by Mainstay Digital</a>'
 const disclaimer = 'Not affiliated with or endorsed by Creality or GS1 US.'
 const iconsByCategory: Record<Category, string> = {
   Toolhead: icon.settings, Motion: icon.circleDot, 'Build platform': icon.layers,
@@ -20,22 +22,27 @@ app.innerHTML = `
   <header class="site-header">
     <div class="header-content">
       <a class="brand" href="/" aria-label="Parts Catalog 3D home">
-        <span class="brand-icon">${icon.box}</span><span>Parts Catalog <b>3D</b></span>
+        <img src="/brand/logo.webp" width="1254" height="200" alt="Mainstay Digital">
+        <span>Parts Catalog 3D</span>
       </a>
       <div class="header-actions">
         <span class="live-pill"><i></i>Live data</span>
-        <button id="sunrise-button" class="sunrise-pill" type="button" aria-label="Sunrise 2027 ready">${icon.qr} <span>Sunrise 2027<span class="ready-word"> ready</span></span> ${icon.arrowUpRight}</button>
+        <button id="sunrise-button" class="sunrise-pill" type="button">Sunrise 2027 ${icon.arrowUpRight}</button>
       </div>
     </div>
   </header>
   <main class="page">
     <section class="intro" aria-labelledby="page-title">
       <div>
-        <div class="eyebrow model-label">${icon.box} Parts Catalog 3D</div>
-        <h1 id="page-title">Creality Ender-3</h1>
-        <p class="data-legend"><span><b>BOM</b> = from Creality’s published BOM</span><span><b>LIVE</b> = fetched from retailer just now</span><span><b>UNVERIFIED</b> = compatibility unconfirmed</span></p>
+        <div class="eyebrow">Interactive 3D parts catalog · Live retail data</div>
+        <h1 id="page-title">Creality <span>Ender-3</span></h1>
+        <p>Explore the printer in 3D and find replacement parts.</p>
       </div>
-      <div class="intro-meta"><span class="live-dot"></span>Interactive 3D model</div>
+      <dl class="data-legend" aria-label="Data labels">
+        <div><dt><span class="badge">BOM</span></dt><dd>From Creality’s published BOM</dd></div>
+        <div><dt><span class="badge badge-live">LIVE</span></dt><dd>Fetched from retailer just now</dd></div>
+        <div><dt><span class="badge">UNVERIFIED</span></dt><dd>Compatibility unconfirmed</dd></div>
+      </dl>
     </section>
 
     <div class="workspace">
@@ -95,7 +102,7 @@ app.innerHTML = `
     </div>
   </main>
   <footer class="site-footer">
-    <span>Live retailer data, fetched on demand.</span>
+    ${studioCredit}
     <span class="footer-disclaimer">${disclaimer}</span>
     <button id="about-button" type="button">${icon.info} About &amp; credits</button>
   </footer>
@@ -135,6 +142,7 @@ app.innerHTML = `
     <p>${disclaimer}</p>
     <p>Part codes, names, specifications and quantities come from the <a href="${bomUrl}" target="_blank" rel="noopener">published Ender-3 BOM</a>. Retailer prices, availability and barcodes are fetched on demand. Compatibility with the original Ender-3 is unverified.</p>
     <p>3D model: <a href="${cadUrl}" target="_blank" rel="noopener">Creality Ender-3 CAD</a> by Shenzhen Creality 3D Technology Co., Ltd., GPL-3.0. Converted to glTF and simplified by Mainstay. The converted model is distributed under GPL-3.0.</p>
+    <p>${studioCredit}</p>
     <a class="primary-link" href="/models/ender3.LICENSE.txt">Model license notice ${icon.arrowUpRight}</a>
   </dialog>
 `
@@ -220,8 +228,11 @@ function loadOffers(part: Part) {
 }
 
 function retailerStatus() {
-  if (offersState?.failed) return '<p class="description" role="status">Retailer data is unavailable. <button class="copy-button" type="button" data-retry>Retry</button></p>'
-  if (!offersState?.response) return '<div class="offer-loading" role="status"><span>Searching retailers…</span><i></i><i></i></div>'
+  const response = offersState?.response
+  if (offersState?.failed || (response && !response.listings.length && response.sources.every(source => !source.ok))) {
+    return '<div class="offer-state offer-error"><p role="status">Retailer data is unavailable.</p><button class="copy-button" type="button" data-retry>Retry</button></div>'
+  }
+  if (!response) return '<div class="offer-loading" role="status"><span>Searching retailers…</span><i aria-hidden="true"></i><i aria-hidden="true"></i></div>'
   return ''
 }
 
@@ -236,6 +247,7 @@ function renderTab(part: Part) {
 
   if (activeTab !== 'overview') loadOffers(part)
   const offers = offersState?.response
+  const hasRetailerResults = offers?.sources.some(source => source.ok)
   switch (activeTab) {
     case 'overview':
       content.innerHTML = `
@@ -260,13 +272,13 @@ function renderTab(part: Part) {
         ?? offers?.listings.find(listing => listing.gtinValid && listing.barcode?.padStart(14, '0') === activeGtin)
       const listings = highlighted && offers ? [highlighted, ...offers.listings.filter(listing => listing !== highlighted)] : offers?.listings
       content.innerHTML = `
-        <p class="description fit-note"><b>UNVERIFIED</b> Live results from each retailer’s public store search. Check the listing to confirm compatibility with the original Ender-3.</p>
+        <p class="description fit-note"><b class="badge">UNVERIFIED</b> Live results from each retailer’s public store search. Check the listing to confirm compatibility with the original Ender-3.</p>
         ${retailerStatus()}
         ${offers ? sourceChips(offers.sources) : ''}
         ${captured && offers && !highlighted ? '<p class="description">The seller-listed GTIN from this link is unavailable in the current live results.</p>' : ''}
         ${listings?.length
           ? `<div class="seller-list">${listings.map(listing => listingCard(listing, offers!.listings.indexOf(listing), listing === highlighted)).join('')}</div>`
-          : offers ? '<p class="description" role="status">No live listings found</p>' : ''}
+          : hasRetailerResults ? `<div class="offer-state" role="status">${icon.search}<div><h3>No live listings found</h3><p>Check retailer search status or try again.</p></div><button class="copy-button" type="button" data-retry>Retry</button></div>` : ''}
       `
       break
     }
@@ -284,7 +296,7 @@ function renderTab(part: Part) {
             <div class="gtin-note"><strong>${escapeHtml(listing.barcode!)}</strong>
             <p>${escapeHtml(listing.store)} · ${escapeHtml(listing.title)}</p>
             <button class="copy-button" type="button" data-show-gtin="${offers!.listings.indexOf(listing)}">Show GS1 Digital Link</button></div>`).join('')}</div>`
-            : offers ? '<p class="description">No seller-listed GTINs with a valid check digit in the live results.</p>' : ''}
+            : hasRetailerResults ? '<p class="description">No seller-listed GTINs with a valid check digit in the live results.</p>' : ''}
         ` : ''}
       `
       renderQr(content)
@@ -310,7 +322,7 @@ function renderDetail(part: Part | undefined) {
       <div class="detail-top">
         <span class="detail-icon">${iconsByCategory[part.category]}</span>
         <span class="detail-category">${part.category}</span>
-        <span class="detail-bom">BOM</span>
+        <span class="badge detail-bom">BOM</span>
         <button type="button" class="icon-button" data-clear aria-label="Close part details">${icon.x}</button>
       </div>
       <h2 id="detail-title">${part.name}</h2>

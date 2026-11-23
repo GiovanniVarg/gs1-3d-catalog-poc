@@ -33,7 +33,7 @@ export function listingCard(listing: Listing, index: number, highlight: boolean)
   const stock = available === null ? 'Stock unavailable' : available ? 'In stock' : 'Sold out'
   return `
     <article class="seller${highlight ? ' seller-highlight' : ''}"${highlight ? ' data-highlighted' : ''}>
-      <div class="seller-meta"><strong>${escapeHtml(listing.host)}</strong><span class="source-live">LIVE</span></div>
+      <div class="seller-meta"><strong>${escapeHtml(listing.host)}</strong><span class="badge badge-live">LIVE</span></div>
       ${highlight ? '<span class="gtin-match">Matches this GTIN link</span>' : ''}
       <a class="seller-title" href="${escapeHtml(listing.url)}" target="_blank" rel="noopener">${escapeHtml(listing.title)} ${icon.arrowUpRight}</a>
       <div class="seller-facts"><span>${escapeHtml(listing.vendor || 'Vendor unavailable')}</span><span>SKU ${escapeHtml(listing.sku || 'unavailable')}</span></div>
@@ -73,7 +73,7 @@ export function renderQr(content: HTMLElement) {
   for (const canvas of content.querySelectorAll<HTMLCanvasElement>('[data-qr]')) {
     void import('qrcode').then(({ toCanvas }) =>
       toCanvas(canvas, location.origin + canvas.dataset.qr, {
-        scale: 6, margin: 4, color: { dark: '#101b30', light: '#ffffff' },
+        scale: 6, margin: 4, color: { dark: '#08090b', light: '#ffffff' },
       }),
     ).catch(() => { canvas.hidden = true })
   }
