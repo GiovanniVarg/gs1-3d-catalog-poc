@@ -38,8 +38,9 @@ await stat('dist/index.html').catch(() => { throw new Error('Run npm run build b
 await mkdir('shots', { recursive: true })
 const host = '127.0.0.1'
 const port = await availablePort()
-const origin = `http://${host}:${port}`
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview',
+const liveBase = process.env.BASE?.replace(/\/$/, '')
+const origin = liveBase || `http://${host}:${port}`
+const server = liveBase ? { exitCode: null, kill() {} } : spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview',
   '--host', host, '--port', String(port), '--strictPort'], { stdio: ['ignore', 'ignore', 'inherit'] })
 
 let browser
@@ -93,7 +94,7 @@ async function partPoint(page, id) {
 }
 
 try {
-  await previewReady(origin, server)
+  if (!liveBase) await previewReady(origin, server)
   browser = await puppeteer.launch({
     executablePath: '/usr/bin/google-chrome',
     headless: true,
