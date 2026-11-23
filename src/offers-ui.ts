@@ -1,4 +1,5 @@
 import * as icon from './icons'
+import { formatPrice, hasLivePrice } from './price'
 
 type Source = { host: string; ok: boolean; ms: number; error?: string }
 export type Listing = {
@@ -18,6 +19,12 @@ export type Listing = {
 }
 export type Offers = { part: string; fetchedAt: string; sources: Source[]; listings: Listing[] }
 
+export async function fetchPartOffers(id: string, signal?: AbortSignal): Promise<Offers> {
+  const response = await fetch('/api/offers?part=' + encodeURIComponent(id), { signal })
+  if (!response.ok) throw new Error('Offers request failed')
+  return response.json()
+}
+
 export function escapeHtml(value: string) {
   const entities: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
   return value.replace(/[&<>"']/g, char => entities[char])
@@ -25,19 +32,20 @@ export function escapeHtml(value: string) {
 
 const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' })
 
-export function listingCard(listing: Listing, index: number, highlight: boolean) {
-  const { price, currency, available, barcode, gtinValid, fetchedAt } = listing
-  const amount = price !== null && currency
-    ? new Intl.NumberFormat(undefined, { style: 'currency', currency, currencyDisplay: 'code' }).format(price)
+export function listingCard(listing: Listing, index: number, highlight: boolean, bestPrice: boolean) {
+  const { currency, available, barcode, gtinValid, fetchedAt } = listing
+  const amount = hasLivePrice(listing)
+    ? formatPrice(listing.price, listing.currency)
     : 'Price unavailable'
   const stock = available === null ? 'Stock unavailable' : available ? 'In stock' : 'Sold out'
   return `
     <article class="seller${highlight ? ' seller-highlight' : ''}"${highlight ? ' data-highlighted' : ''}>
       <div class="seller-meta"><strong>${escapeHtml(listing.host)}</strong><span class="badge badge-live">LIVE</span></div>
       ${highlight ? '<span class="gtin-match">Matches this GTIN link</span>' : ''}
+      ${bestPrice ? `<div class="best-price">${icon.check}<strong>Best price</strong> <small>(in stock, ${escapeHtml(currency!)})</small></div>` : ''}
       <a class="seller-title" href="${escapeHtml(listing.url)}" target="_blank" rel="noopener">${escapeHtml(listing.title)} ${icon.arrowUpRight}</a>
-      <div class="seller-facts"><span>${escapeHtml(listing.vendor || 'Vendor unavailable')}</span><span>SKU ${escapeHtml(listing.sku || 'unavailable')}</span></div>
       <div class="seller-price"><strong>${escapeHtml(amount)}</strong><span class="stock ${available ? '' : 'unavailable'}"><i></i>${stock}</span></div>
+      <div class="seller-facts"><span>${escapeHtml(listing.vendor || 'Vendor unavailable')}</span><span>SKU ${escapeHtml(listing.sku || 'unavailable')}</span></div>
       <span>Fetched <time datetime="${escapeHtml(fetchedAt)}">${time.format(new Date(fetchedAt))}</time></span>
       ${gtinValid && barcode ? `<div class="seller-gtin"><span>Seller-listed GTIN ${escapeHtml(barcode)}</span>
         <button class="copy-button" type="button" data-show-gtin="${index}">Show GS1 Digital Link</button></div>` : ''}

@@ -3,8 +3,15 @@ import '@fontsource-variable/jetbrains-mono/wght.css'
 import './style.css'
 import { bomUrl, cadUrl, categories, partPath, parts, type Category, type Part } from './catalog'
 import snapshotJson from './gtin-snapshot.json'
-import { escapeHtml, listingCard, qrCard, renderQr, sourceChips, type Listing, type Offers } from './offers-ui'
+import { escapeHtml, fetchPartOffers, listingCard, qrCard, renderQr, sourceChips, type Listing, type Offers } from './offers-ui'
 import { parseDigitalLink } from './gtin'
+import { encodeCart, isCartPath, readCartLink } from './cart'
+import { initCart } from './cart-ui'
+import { initIntro } from './intro'
+import { bestPriceIds, hasLivePrice, sortListings, type PriceOrder } from './price'
+import { initQrSheet } from './qr-sheet'
+import { parseScan } from './scan'
+import { initScanner } from './scanner-ui'
 import * as icon from './icons'
 import type { Viewer } from './viewer'
 
@@ -26,12 +33,15 @@ app.innerHTML = `
         <span>Parts Catalog 3D</span>
       </a>
       <div class="header-actions">
-        <span class="live-pill"><i></i>Live data</span>
-        <button id="sunrise-button" class="sunrise-pill" type="button">Sunrise 2027 ${icon.arrowUpRight}</button>
+        <span class="live-pill desktop-only"><i></i>Live data</span>
+        <button id="sunrise-button" class="sunrise-pill" type="button" aria-label="Sunrise 2027"><span>Sunrise <span class="desktop-only">2027</span></span> ${icon.arrowUpRight}</button>
+        <button id="scan-button" class="stage-button desktop-only" type="button">${icon.scan} Scan</button>
+        <button id="cart-button" class="stage-button" type="button">${icon.list} List <span id="list-count" hidden></span></button>
+        <button id="tour-button" class="icon-button" type="button" title="Tour" aria-label="Tour">${icon.help}</button>
       </div>
     </div>
   </header>
-  <main class="page">
+  <main class="page" id="catalog-page">
     <section class="intro" aria-labelledby="page-title">
       <div>
         <div class="eyebrow">Interactive 3D parts catalog · Live retail data</div>
@@ -83,7 +93,7 @@ app.innerHTML = `
         <div class="stage-bottom">
           <button id="open-parts" class="open-parts mobile-only" type="button" aria-controls="catalog-panel" aria-expanded="false">${icon.list} Parts <span>${parts.length}</span></button>
           <span class="stage-hint desktop-only">${icon.mouse} Drag to orbit <i></i> Scroll to zoom <i></i> Click a part</span>
-          <span class="stage-hint mobile-only">${icon.mouse} Drag · Pinch · Tap a part</span>
+          <button id="scan-mobile" class="stage-button mobile-only" type="button">${icon.scan} Scan</button>
         </div>
       </section>
 
@@ -101,9 +111,11 @@ app.innerHTML = `
       </aside>
     </div>
   </main>
+  <main id="qr-sheet" class="qr-sheet" hidden></main>
   <footer class="site-footer">
     ${studioCredit}
     <span class="footer-disclaimer">${disclaimer}</span>
+    <a href="/qr-sheet">Part QR sheet</a>
     <button id="about-button" type="button">${icon.info} About &amp; credits</button>
   </footer>
   <button id="list-backdrop" hidden type="button" tabindex="-1" aria-label="Close parts list"></button>
@@ -142,9 +154,13 @@ app.innerHTML = `
     <p>${disclaimer}</p>
     <p>Part codes, names, specifications and quantities come from the <a href="${bomUrl}" target="_blank" rel="noopener">published Ender-3 BOM</a>. Retailer prices, availability and barcodes are fetched on demand. Compatibility with the original Ender-3 is unverified.</p>
     <p>3D model: <a href="${cadUrl}" target="_blank" rel="noopener">Creality Ender-3 CAD</a> by Shenzhen Creality 3D Technology Co., Ltd., GPL-3.0. Converted to glTF and simplified by Mainstay. The converted model is distributed under GPL-3.0.</p>
+    <p><a href="/qr-sheet">Printable part QR sheet</a></p>
     <p>${studioCredit}</p>
     <a class="primary-link" href="/models/ender3.LICENSE.txt">Model license notice ${icon.arrowUpRight}</a>
   </dialog>
+  <dialog id="scanner-dialog" aria-labelledby="scanner-title"></dialog>
+  <dialog id="tour-dialog" aria-labelledby="tour-message"></dialog>
+  <dialog id="cart-dialog" aria-labelledby="cart-title"></dialog>
 `
 
 function element<T extends HTMLElement = HTMLElement>(id: string) {
@@ -167,6 +183,7 @@ let noticeTimer = 0
 let xray = true
 type Tab = 'overview' | 'sellers' | 'link'
 let activeTab: Tab = 'overview'
+let priceOrder: PriceOrder = 'lowest'
 let activeGtin: string | undefined
 let shownListing: Listing | undefined
 let offersState: { part: Part; response?: Offers; failed?: boolean } | undefined
@@ -177,6 +194,8 @@ declare global {
       readonly ready: boolean
       readonly selectedId: string | null
       readonly exploded: boolean
+      readonly explodeProgress: number
+      decodeImage(url: string): Promise<string | null>
       readonly parts: typeof parts
       select(id: string | null): void
       explode(on?: boolean): void
@@ -189,6 +208,8 @@ window.__catalog = {
   get ready() { return viewer?.ready ?? false },
   get selectedId() { return selected?.id ?? null },
   get exploded() { return viewer?.exploded ?? false },
+  get explodeProgress() { return viewer?.explodeProgress ?? 0 },
+  decodeImage(url) { return scanner.decodeImage(url) },
   parts,
   select(id) { setSelected(parts.find(part => part.id === id), 'push') },
   explode(on) { setExploded(on ?? !viewer?.exploded) },
@@ -217,9 +238,8 @@ function loadOffers(part: Part) {
   if (!part.live || offersState?.part === part) return
   const request: NonNullable<typeof offersState> = { part }
   offersState = request
-  void fetch('/api/offers?part=' + encodeURIComponent(part.id)).then(async response => {
-    if (!response.ok) throw new Error('Offers request failed')
-    request.response = await response.json() as Offers
+  void fetchPartOffers(part.id).then(response => {
+    request.response = response
   }).catch(() => {
     request.failed = true
   }).finally(() => {
@@ -270,14 +290,20 @@ function renderTab(part: Part) {
       const highlighted = offers?.listings.find(listing => listing.gtinValid && listing.barcode?.padStart(14, '0') === activeGtin
         && listing.store === captured?.store && listing.url === captured.url)
         ?? offers?.listings.find(listing => listing.gtinValid && listing.barcode?.padStart(14, '0') === activeGtin)
-      const listings = highlighted && offers ? [highlighted, ...offers.listings.filter(listing => listing !== highlighted)] : offers?.listings
+      const listings = offers && sortListings(offers.listings, priceOrder)
+      const best = bestPriceIds(offers?.listings ?? [], listing => listing)
+      const currencies = new Set(offers?.listings.filter(hasLivePrice).map(listing => listing.currency))
       content.innerHTML = `
-        <p class="description fit-note"><b class="badge">UNVERIFIED</b> Live results from each retailer’s public store search. Check the listing to confirm compatibility with the original Ender-3.</p>
+        <p class="description fit-note"><b class="badge">UNVERIFIED</b> Check each retailer listing for compatibility with the original Ender-3.</p>
+        <div class="price-sort"><label for="price-order">Sort by</label>
+          <select id="price-order"><option value="lowest"${priceOrder === 'lowest' ? ' selected' : ''}>Lowest price in stock</option>
+          <option value="match"${priceOrder === 'match' ? ' selected' : ''}>Best match</option></select></div>
+        ${currencies.size > 1 ? `<p class="currency-note">Prices in ${currencies.size} currencies — compared within each currency only (no conversion)</p>` : ''}
         ${retailerStatus()}
         ${offers ? sourceChips(offers.sources) : ''}
         ${captured && offers && !highlighted ? '<p class="description">The seller-listed GTIN from this link is unavailable in the current live results.</p>' : ''}
         ${listings?.length
-          ? `<div class="seller-list">${listings.map(listing => listingCard(listing, offers!.listings.indexOf(listing), listing === highlighted)).join('')}</div>`
+          ? `<div class="seller-list">${listings.map(listing => listingCard(listing, offers!.listings.indexOf(listing), listing === highlighted, best.has(listing))).join('')}</div>`
           : hasRetailerResults ? `<div class="offer-state" role="status">${icon.search}<div><h3>No live listings found</h3><p>Check retailer search status or try again.</p></div><button class="copy-button" type="button" data-retry>Retry</button></div>` : ''}
       `
       break
@@ -316,6 +342,7 @@ function renderDetail(part: Part | undefined) {
     return
   }
   activeTab = 'overview'
+  priceOrder = 'lowest'
   detail.innerHTML = `
     <button type="button" class="sheet-handle mobile-only" data-expand aria-expanded="false" aria-label="Expand part details"><span></span></button>
     <div class="detail-head">
@@ -325,8 +352,11 @@ function renderDetail(part: Part | undefined) {
         <span class="badge detail-bom">BOM</span>
         <button type="button" class="icon-button" data-clear aria-label="Close part details">${icon.x}</button>
       </div>
-      <h2 id="detail-title">${part.name}</h2>
-      <p class="part-number">${part.bomLines.length} published BOM ${part.bomLines.length === 1 ? 'line' : 'lines'}</p>
+      <div class="part-title-row">
+        <div><h2 id="detail-title">${part.name}</h2>
+        <p class="part-number">${part.bomLines.length} published BOM ${part.bomLines.length === 1 ? 'line' : 'lines'}</p></div>
+        <button type="button" class="copy-button add-to-cart" data-add-cart></button>
+      </div>
     </div>
     <div class="detail-tabs" role="tablist" aria-label="Part details">
       <button id="tab-overview" type="button" role="tab" data-tab="overview" aria-controls="detail-content">Overview</button>
@@ -335,6 +365,7 @@ function renderDetail(part: Part | undefined) {
     </div>
     <div id="detail-content" class="detail-content" role="tabpanel" tabindex="0"></div>
   `
+  updateCartButtons()
   renderTab(part)
 }
 
@@ -357,6 +388,7 @@ function setSelected(part: Part | undefined, historyMode: 'push' | 'read', insta
     renderTab(part)
   }
   viewer?.select(part?.id ?? null, instant)
+  explode.setAttribute('aria-pressed', String(viewer?.exploded ?? false))
   const ghost = element<HTMLButtonElement>('ghost')
   ghost.hidden = !part
 }
@@ -369,7 +401,18 @@ function showToast(message: string) {
   noticeTimer = window.setTimeout(() => { toast.hidden = true }, 4200)
 }
 
+const qrRoute = /^\/qr-sheet\/?$/
+const qrSheet = element('qr-sheet')
+
 function readRoute(instant = false) {
+  const showQrSheet = qrRoute.test(location.pathname)
+  qrSheet.hidden = !showQrSheet
+  element('catalog-page').hidden = showQrSheet
+  document.querySelector<HTMLElement>('.site-header')!.hidden = showQrSheet
+  document.querySelector<HTMLElement>('.site-footer')!.hidden = showQrSheet
+  if (showQrSheet && !qrSheet.childElementCount) initQrSheet(qrSheet)
+  const onList = isCartPath(location.pathname)
+  if (!onList) cart.close()
   const route = parseDigitalLink(location.href)
   const partMatch = /^\/part\/([a-z0-9-]+)\/?$/.exec(location.pathname)
   activeGtin = route.kind === 'part' ? route.gtin : undefined
@@ -383,6 +426,11 @@ function readRoute(instant = false) {
     showToast('Part unavailable in this catalog')
   }
   setSelected(part, 'read', instant)
+  if (onList) {
+    const shared = readCartLink(new URL(location.href))
+    if (shared) cart.restore(shared)
+    else cart.open()
+  }
   if (captured) activateTab('sellers')
   else if (part) {
     activeTab = 'overview'
@@ -461,6 +509,7 @@ mobile.addEventListener('change', () => toggleList(false, false))
 detail.addEventListener('click', async event => {
   const button = (event.target as Element).closest<HTMLButtonElement>('button')
   if (!button || !selected) return
+  if (button.hasAttribute('data-add-cart')) cart.toggle(selected.id)
   if (button.hasAttribute('data-clear')) {
     setSelected(undefined, 'push')
     if (mobile.matches) element('open-parts').focus()
@@ -488,6 +537,14 @@ detail.addEventListener('click', async event => {
       showToast('Select the link text to copy it.')
     }
   }
+})
+
+detail.addEventListener('change', event => {
+  const control = event.target as HTMLSelectElement
+  if (control.id !== 'price-order' || !selected) return
+  priceOrder = control.value === 'match' ? 'match' : 'lowest'
+  renderTab(selected)
+  element('price-order').focus()
 })
 
 detail.addEventListener('keydown', event => {
@@ -532,7 +589,7 @@ for (const name of ['sunrise', 'about']) {
 }
 
 document.addEventListener('keydown', event => {
-  if (document.querySelector('dialog[open]')) return
+  if (!qrSheet.hidden || document.querySelector('dialog[open]')) return
   if (event.key === 'Escape') {
     if (listOpen) toggleList(false)
     else if (selected) setSelected(undefined, 'push')
@@ -544,11 +601,54 @@ document.addEventListener('keydown', event => {
   search.focus()
 })
 
-window.addEventListener('popstate', () => readRoute())
+function updateCartButtons() {
+  const count = element('list-count')
+  count.hidden = !cart.count
+  count.textContent = String(cart.count)
+  const button = detail.querySelector<HTMLButtonElement>('[data-add-cart]')
+  if (!button || !selected) return
+  const added = cart.has(selected.id)
+  button.setAttribute('aria-pressed', String(added))
+  button.innerHTML = `${added ? icon.check : ''} ${added ? 'Added' : 'Add to list'}${cart.count ? ` <span>${cart.count}</span>` : ''}`
+  button.title = added ? 'Remove from list' : 'Add to list'
+}
+
+const cart = initCart(element('cart-dialog'), updateCartButtons, () => {
+  if (isCartPath(location.pathname)) history.replaceState(null, '', '/')
+})
+const intro = initIntro(element('tour-dialog'))
+const scanner = initScanner(element('scanner-dialog'), text => {
+  const result = parseScan(text, location.origin)
+  if (result.kind === 'unknown') {
+    const message = 'Unrecognized code: ' + text.slice(0, 140)
+    if (element<HTMLDialogElement>('scanner-dialog').open) scanner.notify(message)
+    else showToast(message)
+    return
+  }
+  scanner.close()
+  navigator.vibrate?.(35)
+  let path: string
+  if (result.kind === 'part') path = '/part/' + result.id
+  else if (result.kind === 'gtin') path = '/01/' + result.gtin
+  else path = '/list?' + new URLSearchParams({ v: '1', i: encodeCart(result.items) })
+  if (path !== location.pathname + location.search) history.pushState(null, '', path)
+  readRoute()
+})
+
+element('cart-button').addEventListener('click', cart.open)
+element('tour-button').addEventListener('click', intro.open)
+for (const id of ['scan-button', 'scan-mobile']) element(id).addEventListener('click', scanner.open)
+updateCartButtons()
+window.addEventListener('popstate', () => {
+  readRoute()
+  if (qrSheet.hidden && !viewer && !modelStarted) void loadModel()
+})
 renderList()
 readRoute(true)
 
+let modelStarted = false
 async function loadModel() {
+  modelStarted = true
   const label = element('loading-label')
   const progress = element<HTMLProgressElement>('load-progress')
   try {
@@ -560,6 +660,7 @@ async function loadModel() {
       label.textContent = fraction < 1 ? `Loading 3D model… ${Math.round(fraction * 100)}%` : 'Preparing the model…'
     })
     viewer.select(selected?.id ?? null, true)
+    explode.setAttribute('aria-pressed', String(viewer.exploded))
     element('loading').hidden = true
     explode.disabled = false
     element<HTMLButtonElement>('reset-view').disabled = false
@@ -567,7 +668,9 @@ async function loadModel() {
     console.error(error)
     progress.hidden = true
     label.textContent = 'The 3D model couldn’t load. You can still browse the parts catalog.'
+  } finally {
+    intro.firstRun()
   }
 }
 
-void loadModel()
+if (qrSheet.hidden) void loadModel()

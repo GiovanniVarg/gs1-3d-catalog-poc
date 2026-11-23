@@ -4,6 +4,7 @@ import check from 'lucide-static/icons/check.svg?raw'
 import chevronDown from 'lucide-static/icons/chevron-down.svg?raw'
 import chevronRight from 'lucide-static/icons/chevron-right.svg?raw'
 import circleDot from 'lucide-static/icons/circle-dot.svg?raw'
+import help from 'lucide-static/icons/circle-help.svg?raw'
 import copy from 'lucide-static/icons/copy.svg?raw'
 import crosshair from 'lucide-static/icons/crosshair.svg?raw'
 import eye from 'lucide-static/icons/eye.svg?raw'
@@ -12,6 +13,9 @@ import layers from 'lucide-static/icons/layers.svg?raw'
 import lightbulb from 'lucide-static/icons/lightbulb.svg?raw'
 import list from 'lucide-static/icons/list.svg?raw'
 import mouse from 'lucide-static/icons/mouse.svg?raw'
+import printer from 'lucide-static/icons/printer.svg?raw'
+import scan from 'lucide-static/icons/scan-line.svg?raw'
+import share from 'lucide-static/icons/share-2.svg?raw'
 import qr from 'lucide-static/icons/qr-code.svg?raw'
 import rotate from 'lucide-static/icons/rotate-ccw.svg?raw'
 import search from 'lucide-static/icons/search.svg?raw'
@@ -19,4 +23,4 @@ import settings from 'lucide-static/icons/settings.svg?raw'
 import x from 'lucide-static/icons/x.svg?raw'
 
 export { arrowUpRight, box, check, chevronDown, chevronRight, circleDot, copy, crosshair,
-  eye, info, layers, lightbulb, list, mouse, qr, rotate, search, settings, x }
+  eye, help, info, layers, lightbulb, list, mouse, printer, qr, rotate, scan, search, settings, share, x }

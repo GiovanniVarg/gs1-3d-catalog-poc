@@ -22,10 +22,30 @@ type Assembly = {
   group: THREE.Group
   bounds: THREE.Box3
   offset: THREE.Vector3
+  explodedBounds: THREE.Box3
   materials: Map<THREE.Material, Appearance>
 }
 
 const signal = new THREE.Color('#5b8cff')
+// Model coordinates use +Y up. Offsets separate assemblies that share an axis or enclosure.
+const assemblyOffsets: Record<string, [number, number, number]> = {
+  mainboard: [.68, .04, -1.15],
+  psu: [-1.35, .34, .65],
+  hotend: [-.12, .50, -1.25],
+  'hotend-fans': [-.85, .38, -.95],
+  extruder: [.85, .78, .83],
+  steppers: [.65, -.18, .70],
+  hotbed: [.08, 1.02, -.27],
+  leveling: [.32, -.40, -.55],
+  'z-axis': [1.2, .45, -.12],
+}
+const enclosureOffsets = new Map<string, THREE.Vector3>([
+  ['Control panel', new THREE.Vector3(.52, .13, -.32)],
+  ['Case fan', new THREE.Vector3(-.25, .95, -.10)],
+  ['Sheetmetal enclosure top', new THREE.Vector3(.20, .48, .65)],
+  ['Sheetmetal enclosure bottom', new THREE.Vector3(.54, -.33, .25)],
+])
+const easeInOutCubic = (t: number) => t < .5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2
 const cameraDirection = new THREE.Vector3(-.88, .7, -1.35).normalize()
 
 // Visual finishes for the monochrome CAD. These are illustrative, not BOM specifications.
@@ -98,12 +118,17 @@ export class Viewer {
   private readonly activePointers = new Set<number>()
   private tap: { id: number; x: number; y: number; time: number } | null = null
   private frame = 0
-  private lastTime = 0
+  private readonly controlPanelMeshes = new Set<THREE.Object3D>()
+  private readonly enclosureMeshes: { mesh: ModelMesh; position: THREE.Vector3; offset: THREE.Vector3 }[] = []
   private spread = 0
   private spreadTo = 0
+  private spreadFrom = 0
+  private spreadStarted = 0
+  private spreadDuration = 900
+  get explodeProgress() { return this.spread }
   private motion: {
     fromTarget: THREE.Vector3; fromPosition: THREE.Vector3
-    toTarget: THREE.Vector3; toPosition: THREE.Vector3; started: number
+    toTarget: THREE.Vector3; toPosition: THREE.Vector3; started: number; duration: number
   } | null = null
   private readonly reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 
@@ -184,16 +209,28 @@ export class Viewer {
       clone.geometry = geometry
       clone.material = this.cloneMaterial(finishFor(id, stepName, mesh.name), assembly)
       assembly.group.add(clone)
+      const extraOffset = enclosureOffsets.get(stepName)
+      if (id === 'mainboard' && extraOffset) {
+        this.enclosureMeshes.push({ mesh: clone, position: clone.position.clone(), offset: extraOffset })
+        if (stepName === 'Control panel') this.controlPanelMeshes.add(clone)
+      }
       this.meshes.push(clone)
       this.meshIds.set(clone, id)
     })
 
     this.bounds.setFromObject(this.model)
     const center = this.bounds.getCenter(new THREE.Vector3())
-    for (const assembly of this.assemblies.values()) {
+    for (const [id, assembly] of this.assemblies) {
       assembly.bounds.setFromObject(assembly.group)
-      const direction = assembly.bounds.getCenter(new THREE.Vector3()).sub(center).normalize()
-      assembly.offset.copy(direction.multiplyScalar(1.15))
+      const manual = assemblyOffsets[id]
+      if (manual) assembly.offset.set(...manual)
+      else assembly.offset.copy(assembly.bounds.getCenter(new THREE.Vector3()).sub(center).normalize()).multiplyScalar(1.15)
+      if (id === 'mainboard') {
+        for (const { mesh, offset } of this.enclosureMeshes) {
+          assembly.explodedBounds.union(new THREE.Box3().setFromObject(mesh).translate(offset))
+        }
+        assembly.explodedBounds.translate(assembly.offset)
+      } else assembly.explodedBounds.copy(assembly.bounds).translate(assembly.offset)
     }
 
     this.ready = true
@@ -208,6 +245,7 @@ export class Viewer {
       group: new THREE.Group(),
       bounds: new THREE.Box3(),
       offset: new THREE.Vector3(),
+      explodedBounds: new THREE.Box3(),
       materials: new Map<THREE.Material, Appearance>(),
     }
     this.assemblies.set(id, assembly)
@@ -230,7 +268,9 @@ export class Viewer {
     this.selectedId = id
     this.hoveredId = null
     this.colorParts()
-    this.focus(!instant)
+    const hidden = id && this.ready && !this.exploded && (id === 'mainboard' || (!this.ghost && !this.projectPart(id)))
+    if (hidden) this.setExploded(true)
+    else this.focus(!instant)
   }
 
   setGhost(on: boolean) {
@@ -239,9 +279,13 @@ export class Viewer {
   }
 
   setExploded(on: boolean) {
+    if (this.exploded === on) return
     this.exploded = on
+    this.spreadFrom = this.spread
     this.spreadTo = Number(on)
-    this.focus(true)
+    this.spreadStarted = performance.now()
+    this.spreadDuration = Math.max(180, 900 * Math.abs(this.spreadTo - this.spreadFrom))
+    this.focus(true, false, this.spreadDuration)
     this.invalidate()
   }
 
@@ -306,21 +350,22 @@ export class Viewer {
     return distance
   }
 
-  private focus(animate: boolean, reset = false) {
+  private focus(animate: boolean, reset = false, duration = 460) {
     if (!this.ready) return
     const direction = reset ? cameraDirection : this.camera.position.clone().sub(this.controls.target).normalize()
     const home = this.bounds.clone()
     if (this.exploded) {
-      for (const { bounds, offset } of this.assemblies.values()) home.union(bounds.clone().translate(offset))
+      home.makeEmpty()
+      for (const { explodedBounds } of this.assemblies.values()) home.union(explodedBounds)
     }
     const center = home.getCenter(new THREE.Vector3())
     const narrow = this.camera.aspect < 1
-    const homeDistance = this.viewDistance(home, center, direction) * (narrow ? 1.14 : 1.23)
+    const homeDistance = this.viewDistance(home, center, direction) * (narrow ? 1.14 : this.exploded ? 1.13 : 1.23)
     const part = this.selectedId ? this.assemblies.get(this.selectedId) : undefined
     let target = center
     let distance = homeDistance
     if (part) {
-      const bounds = part.bounds.clone().translate(part.offset.clone().multiplyScalar(this.spreadTo))
+      const bounds = this.exploded ? part.explodedBounds : part.bounds
       const partCenter = bounds.getCenter(new THREE.Vector3())
       target = center.clone().lerp(partCenter, narrow ? .24 : .43)
       distance = Math.max(
@@ -332,7 +377,7 @@ export class Viewer {
     if (animate && !this.reducedMotion.matches) {
       this.motion = {
         fromTarget: this.controls.target.clone(), fromPosition: this.camera.position.clone(),
-        toTarget: target, toPosition: position, started: performance.now(),
+        toTarget: target, toPosition: position, started: performance.now(), duration,
       }
     } else {
       this.motion = null
@@ -349,18 +394,17 @@ export class Viewer {
 
   private draw = (now: number) => {
     this.frame = 0
-    const delta = Math.min(50, now - this.lastTime)
-    this.lastTime = now
     if (this.spread !== this.spreadTo) {
-      this.spread = THREE.MathUtils.damp(this.spread, this.spreadTo, 10, delta / 1000)
-      if (Math.abs(this.spread - this.spreadTo) < .002 || this.reducedMotion.matches) this.spread = this.spreadTo
+      const progress = this.reducedMotion.matches ? 1 : Math.min(1, (now - this.spreadStarted) / this.spreadDuration)
+      this.spread = THREE.MathUtils.lerp(this.spreadFrom, this.spreadTo, easeInOutCubic(progress))
       for (const { group, offset } of this.assemblies.values()) group.position.copy(offset).multiplyScalar(this.spread)
-      if (this.spread !== this.spreadTo) this.invalidate()
+      for (const { mesh, position, offset } of this.enclosureMeshes) mesh.position.copy(position).addScaledVector(offset, this.spread)
+      if (progress < 1) this.invalidate()
     }
     if (this.motion) {
       const motion = this.motion
-      const progress = Math.min(1, (now - motion.started) / 460)
-      const eased = 1 - (1 - progress) ** 3
+      const progress = Math.min(1, (now - motion.started) / motion.duration)
+      const eased = easeInOutCubic(progress)
       this.controls.target.lerpVectors(motion.fromTarget, motion.toTarget, eased)
       this.camera.position.lerpVectors(motion.fromPosition, motion.toPosition, eased)
       if (progress < 1) this.invalidate()
@@ -371,20 +415,33 @@ export class Viewer {
   }
 
   private pick(x: number, y: number) {
+    const mesh = this.pickMesh(x, y)
+    return mesh ? this.meshIds.get(mesh) ?? null : null
+  }
+
+  private pickMesh(x: number, y: number) {
     if (!this.ready) return null
     const rect = this.canvas.getBoundingClientRect()
     const point = new THREE.Vector2((x - rect.left) / rect.width * 2 - 1, 1 - (y - rect.top) / rect.height * 2)
     this.model.updateMatrixWorld(true)
     this.camera.updateMatrixWorld()
     this.raycaster.setFromCamera(point, this.camera)
-    const closest = this.raycaster.intersectObjects(this.meshes, false)[0]
-    return closest ? this.meshIds.get(closest.object) ?? null : null
+    return this.raycaster.intersectObjects(this.meshes, false)[0]?.object ?? null
   }
 
   projectPart(id: string) {
     const assembly = this.assemblies.get(id)
     if (!assembly) return null
+    const exposedBoard = id === 'mainboard' && this.spread === 1
     const bounds = assembly.bounds.clone().translate(assembly.group.position)
+    if (exposedBoard) {
+      bounds.makeEmpty()
+      for (const mesh of this.controlPanelMeshes) bounds.expandByObject(mesh)
+    }
+    const hitsPart = ({ x, y }: { x: number; y: number }) => {
+      const mesh = this.pickMesh(x, y)
+      return mesh && (exposedBoard ? this.controlPanelMeshes.has(mesh) : this.meshIds.get(mesh) === id)
+    }
     const rect = this.canvas.getBoundingClientRect()
     this.camera.updateMatrixWorld()
     const project = (point: THREE.Vector3) => {
@@ -392,7 +449,7 @@ export class Viewer {
       return { x: rect.left + (point.x + 1) * rect.width / 2, y: rect.top + (1 - point.y) * rect.height / 2 }
     }
     const center = project(bounds.getCenter(new THREE.Vector3()))
-    if (this.pick(center.x, center.y) === id) return center
+    if (hitsPart(center)) return center
     // Convex bounds can surround holes or cover occluded surfaces. Look for a visible point near the center.
     const corners = [bounds.min.x, bounds.max.x].flatMap(x => [bounds.min.y, bounds.max.y].flatMap(y =>
       [bounds.min.z, bounds.max.z].map(z => project(new THREE.Vector3(x, y, z)))))
@@ -405,7 +462,7 @@ export class Viewer {
     for (const row of steps) {
       for (const column of steps) {
         const point = { x: left + column * (right - left), y: top + row * (bottom - top) }
-        if (this.pick(point.x, point.y) === id) return point
+        if (hitsPart(point)) return point
       }
     }
     return null

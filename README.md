@@ -1,6 +1,6 @@
 # Creality Ender-3 · Parts Catalog 3D
 
-Explore the original Creality Ender-3 in 3D. Select an assembly on the printer or in the catalog to inspect its published BOM lines, browse live retailer results, and share its part link. Explode and fade controls expose hidden components.
+Explore the original Creality Ender-3 in 3D. Select an assembly on the printer or in the catalog to inspect its published BOM lines, browse live retailer results, and share its part link. Explode animates the assemblies apart, and the fade control helps isolate a selected part. Mainboard selection opens the enclosure automatically. Replay the guided intro with **Tour**.
 
 ## Run locally
 
@@ -10,6 +10,12 @@ npm run dev
 ```
 
 Use Node.js 22.12 or later. Drag to orbit and scroll or pinch to zoom. Search by name, Creality part code, specification, or category. Press `/` to focus search and `Esc` to close the selection. On a phone, tap **Parts** to open the list and use the handle or swipe the part sheet to expand it.
+
+## Scan, print and share
+
+- **Scan** reads QR codes with the rear camera on HTTPS or localhost. The same sheet accepts pasted part links, GS1 Digital Links, GTINs and shared lists. Open `/qr-sheet` to print app deep-link QR codes for all 17 parts.
+- **Where to buy** defaults to the lowest in-stock price within each currency. **Best match** restores retailer search order. Compatibility remains unverified.
+- **Add to list** saves parts on this device. The **List** drawer fetches current retailer prices and shows the cheapest in-stock listing for each currency, with separate subtotals. **Copy link** shares the parts and quantities. Opening a shared link replaces the saved list with an option to undo.
 
 ## Data sources
 
@@ -29,7 +35,7 @@ npm run verify
 
 Build outputs go to `dist/`. The Vite dev and preview servers mount the same API handlers used by the Vercel Node functions. The Vercel rewrite serves catalog deep links through the SPA.
 
-Verification launches Chrome at `/usr/bin/google-chrome` with SwiftShader against Vite preview. It requires real network access to the retailer endpoints and fails if no hotend results are returned. It checks desktop and emulated iPhone interactions and writes `real-desktop.png`, `real-phone.png`, `real-phone-home.png`, and `real-phone-buy.png` in `shots/`.
+Verification launches Chrome at `/usr/bin/google-chrome` with SwiftShader against Vite preview. It requires live retailer access for hotend and power supply results. It checks desktop and 393 × 852 iPhone interactions, including tour dismissal, the exploded mainboard, price sorting, list sharing, QR sheet print styles, and navigation from a generated QR without a camera. It writes eight `v4-*.png` screenshots in `shots/` alongside the existing verification captures.
 
 ## Credits
 
